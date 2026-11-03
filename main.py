@@ -4,13 +4,22 @@ from sqlalchemy.orm import Session
 from database import Base, engine, get_db
 import db_models
 
-from models import Task, TaskCreate, TaskUpdate, TaskDeleteResponse
+from models import (
+    Task,
+    TaskCreate,
+    TaskUpdate,
+    TaskDeleteResponse,
+    UserCreate,
+    User,
+)
+
 from crud import (
     find_task_by_id,
     get_all_tasks,
     create_task_db,
     delete_task_db,
     update_task_db,
+    create_user_db,
 )
 
 Base.metadata.create_all(bind=engine)
@@ -94,3 +103,15 @@ def update_task(
         )
 
     return updated_task
+
+
+@app.post("/register", response_model=User, status_code=201)
+def register_user(
+    user: UserCreate,
+    db: Session = Depends(get_db)
+):
+    return create_user_db(
+        db,
+        user.email,
+        user.password
+    )

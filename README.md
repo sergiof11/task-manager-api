@@ -7,6 +7,7 @@ API REST para gestionar tareas, desarrollada con FastAPI y PostgreSQL.
 - Python
 - FastAPI
 - PostgreSQL
+- SQLAlchemy
 - psycopg
 - Pydantic
 - pytest

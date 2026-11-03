@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 
-from db_models import TaskDB
+from db_models import TaskDB, UserDB
+from security import hash_password
 
 
 def get_all_tasks(db: Session):
@@ -49,3 +50,16 @@ def delete_task_db(db: Session, task_id: int):
     db.commit()
 
     return task
+
+
+def create_user_db(db: Session, email: str, password: str):
+    user = UserDB(
+        email=email,
+        hashed_password=hash_password(password)
+    )
+
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    return user
