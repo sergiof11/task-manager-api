@@ -1,10 +1,10 @@
 from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
 
-from database import Base, engine, get_db
-import db_models
+from app.database import Base, engine, get_db
+import app.db_models as db_models
 
-from models import (
+from app.models import (
     Task,
     TaskCreate,
     TaskUpdate,
@@ -13,7 +13,7 @@ from models import (
     User,
 )
 
-from crud import (
+from app.crud import (
     find_task_by_id,
     get_all_tasks,
     create_task_db,

@@ -28,15 +28,18 @@ API REST para gestionar tareas, desarrollada con FastAPI y PostgreSQL.
 
 ```text
 GestorTareas/
-├── main.py
-├── crud.py
-├── database.py
-├── models.py
+├── app/
+│   ├── main.py
+│   ├── crud.py
+│   ├── database.py
+│   ├── db_models.py
+│   ├── models.py
+│   └── security.py
+├── tests/
+│   └── test_main.py
 ├── requirements.txt
 ├── .env.example
-├── README.md
-└── tests/
-    └── test_main.py
+└── README.md
 ```
 
 ## Instalación
@@ -83,7 +86,7 @@ gestor_tareas
 Con el entorno virtual activado:
 
 ```powershell
-python -m uvicorn main:app --reload
+python -m uvicorn app.main:app --reload
 ```
 
 La API estará disponible en:

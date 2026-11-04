@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
-from db_models import TaskDB, UserDB
-from security import hash_password
+from app.db_models import TaskDB, UserDB
+from app.security import hash_password
 
 
 def get_all_tasks(db: Session):
