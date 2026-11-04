@@ -20,6 +20,7 @@ from crud import (
     delete_task_db,
     update_task_db,
     create_user_db,
+    find_user_by_email,
 )
 
 Base.metadata.create_all(bind=engine)
@@ -110,6 +111,14 @@ def register_user(
     user: UserCreate,
     db: Session = Depends(get_db)
 ):
+    existing_user = find_user_by_email(db, user.email)
+
+    if existing_user is not None:
+        raise HTTPException(
+            status_code=400,
+            detail="El email ya está registrado"
+        )
+
     return create_user_db(
         db,
         user.email,

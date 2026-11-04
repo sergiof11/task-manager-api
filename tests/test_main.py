@@ -5,7 +5,7 @@ os.environ["DB_NAME"] = "gestor_tareas_test"
 from fastapi.testclient import TestClient
 from main import app
 from database import SessionLocal
-from db_models import TaskDB
+from db_models import TaskDB, UserDB
 
 client = TestClient(app)
 
@@ -170,6 +170,67 @@ def test_create_task_with_empty_title():
         "/tasks",
         json={
             "title": "     "
+        }
+    )
+
+    assert response.status_code == 422
+
+
+def clear_users():
+    db = SessionLocal()
+
+    try:
+        db.query(UserDB).delete()
+        db.commit()
+    finally:
+        db.close()
+
+
+def test_register_user():
+    clear_users()
+
+    response = client.post(
+        "/register",
+        json={
+            "email": "test@example.com",
+            "password": "Password123"
+        }
+    )
+
+    assert response.status_code == 201
+
+    data = response.json()
+
+    assert "id" in data
+    assert data["email"] == "test@example.com"
+    assert "password" not in data
+    assert "hashed_password" not in data
+
+
+def test_register_duplicate_email():
+    clear_users()
+
+    user_data = {
+        "email": "test@example.com",
+        "password": "Password123"
+    }
+
+    client.post("/register", json=user_data)
+
+    response = client.post("/register", json=user_data)
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "El email ya está registrado"
+
+
+def test_register_invalid_email():
+    clear_users()
+
+    response = client.post(
+        "/register",
+        json={
+            "email": "email-invalido",
+            "password": "Password123"
         }
     )
 

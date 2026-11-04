@@ -63,3 +63,7 @@ def create_user_db(db: Session, email: str, password: str):
     db.refresh(user)
 
     return user
+
+
+def find_user_by_email(db: Session, email: str):
+    return db.query(UserDB).filter(UserDB.email == email).first()
