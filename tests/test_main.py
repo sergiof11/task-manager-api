@@ -20,12 +20,6 @@ def clear_tasks():
         db.close()
 
 
-def test_get_home():
-    response = client.get("/")
-
-    assert response.status_code == 200
-
-
 def test_get_tasks():
     clear_tasks()
 
@@ -190,7 +184,7 @@ def test_register_user():
     clear_users()
 
     response = client.post(
-        "/register",
+        "/users/register",
         json={
             "email": "test@example.com",
             "password": "Password123"
@@ -215,9 +209,9 @@ def test_register_duplicate_email():
         "password": "Password123"
     }
 
-    client.post("/register", json=user_data)
+    client.post("/users/register", json=user_data)
 
-    response = client.post("/register", json=user_data)
+    response = client.post("/users/register", json=user_data)
 
     assert response.status_code == 400
     assert response.json()["detail"] == "El email ya está registrado"
@@ -227,7 +221,7 @@ def test_register_invalid_email():
     clear_users()
 
     response = client.post(
-        "/register",
+        "/users/register",
         json={
             "email": "email-invalido",
             "password": "Password123"

@@ -1,6 +1,6 @@
 # Task Manager API
 
-API REST para gestionar tareas, desarrollada con FastAPI y PostgreSQL.
+API REST para gestionar tareas y usuarios, desarrollada con FastAPI y PostgreSQL.
 
 ## Tecnologías
 
@@ -10,6 +10,8 @@ API REST para gestionar tareas, desarrollada con FastAPI y PostgreSQL.
 - SQLAlchemy
 - psycopg
 - Pydantic
+- pwdlib
+- Argon2
 - pytest
 - httpx
 
@@ -21,8 +23,13 @@ API REST para gestionar tareas, desarrollada con FastAPI y PostgreSQL.
 - Actualizar tareas
 - Eliminar tareas
 - Validación de datos
-- Base de datos separada para tests
-- Tests automáticos del CRUD
+- Registro de usuarios
+- Validación de emails
+- Protección frente a emails duplicados
+- Hash seguro de contraseñas con Argon2
+- Organización de endpoints mediante routers
+- Base de datos PostgreSQL separada para tests
+- Tests automáticos del CRUD y registro de usuarios
 
 ## Estructura del proyecto
 
@@ -34,7 +41,11 @@ GestorTareas/
 │   ├── database.py
 │   ├── db_models.py
 │   ├── models.py
-│   └── security.py
+│   ├── security.py
+│   └── routers/
+│       ├── __init__.py
+│       ├── tasks.py
+│       └── users.py
 ├── tests/
 │   └── test_main.py
 ├── requirements.txt
@@ -95,7 +106,7 @@ La API estará disponible en:
 http://127.0.0.1:8000
 ```
 
-La documentación automática de FastAPI estará disponible en:
+La documentación interactiva de FastAPI estará disponible en:
 
 ```text
 http://127.0.0.1:8000/docs
@@ -103,25 +114,21 @@ http://127.0.0.1:8000/docs
 
 ## Endpoints
 
-### Comprobar API
+### Tasks
 
-```http
-GET /
-```
-
-### Obtener todas las tareas
+#### Obtener todas las tareas
 
 ```http
 GET /tasks
 ```
 
-### Obtener una tarea
+#### Obtener una tarea
 
 ```http
 GET /tasks/{task_id}
 ```
 
-### Crear una tarea
+#### Crear una tarea
 
 ```http
 POST /tasks
@@ -135,7 +142,9 @@ Ejemplo:
 }
 ```
 
-### Actualizar una tarea
+El campo `completed` es opcional al crear una tarea y por defecto es `false`.
+
+#### Actualizar una tarea
 
 ```http
 PUT /tasks/{task_id}
@@ -150,11 +159,32 @@ Ejemplo:
 }
 ```
 
-### Eliminar una tarea
+#### Eliminar una tarea
 
 ```http
 DELETE /tasks/{task_id}
 ```
+
+### Users
+
+#### Registrar un usuario
+
+```http
+POST /users/register
+```
+
+Ejemplo:
+
+```json
+{
+  "email": "user@example.com",
+  "password": "Password123"
+}
+```
+
+Las contraseñas no se almacenan en texto plano. Se guardan mediante un hash seguro utilizando Argon2.
+
+El email debe tener un formato válido y no puede estar registrado previamente.
 
 ## Tests
 
@@ -166,9 +196,8 @@ Ejecutar todos los tests:
 python -m pytest
 ```
 
-Actualmente se prueban:
+Actualmente el proyecto cuenta con 12 tests que comprueban:
 
-- funcionamiento básico de la API
 - listado de tareas
 - obtención de tareas por ID
 - creación de tareas
@@ -176,19 +205,28 @@ Actualmente se prueban:
 - eliminación de tareas
 - errores `404`
 - validación de títulos incorrectos
+- registro de usuarios
+- emails duplicados
+- validación de emails incorrectos
+- que las contraseñas no se expongan en las respuestas
 
 ## Próximas mejoras
 
-- Sistema de usuarios
+- Login de usuarios
 - Autenticación con JWT
 - Protección de endpoints
 - Relación entre usuarios y tareas
+- Autorización para que cada usuario acceda únicamente a sus tareas
+- Ampliación de tests de autenticación y autorización
 - Docker
 - GitHub Actions
-- Deploy de la API
+- Deploy en Azure
+- README final para portfolio
 
 ## Estado del proyecto
 
 Proyecto en desarrollo.
 
-La API CRUD y los tests básicos están implementados. Las siguientes fases estarán centradas en autenticación, usuarios y preparación para producción.
+El CRUD de tareas, el registro de usuarios, la validación de datos, el hashing de contraseñas, SQLAlchemy y los tests básicos están implementados.
+
+La siguiente fase estará centrada en login, autenticación JWT y protección de endpoints.
