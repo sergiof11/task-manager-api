@@ -47,9 +47,8 @@ task-manager-api/
 │   ├── schemas.py
 │   ├── security.py
 │   └── routers/
-│       ├── __init__.py
 │       ├── tasks.py
-│       └── users.py
+│       └── users.py       
 ├── tests/
 │   └── test_main.py
 ├── requirements.txt
