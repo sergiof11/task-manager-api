@@ -10,6 +10,7 @@ API REST para gestionar tareas y usuarios, desarrollada con FastAPI y PostgreSQL
 - SQLAlchemy
 - psycopg
 - Pydantic
+- pydantic-settings
 - pwdlib
 - Argon2
 - pytest
@@ -27,6 +28,8 @@ API REST para gestionar tareas y usuarios, desarrollada con FastAPI y PostgreSQL
 - Validación de emails
 - Protección frente a emails duplicados
 - Hash seguro de contraseñas con Argon2
+- Acceso a PostgreSQL mediante SQLAlchemy
+- Configuración centralizada con `pydantic-settings`
 - Organización de endpoints mediante routers
 - Base de datos PostgreSQL separada para tests
 - Tests automáticos del CRUD y registro de usuarios
@@ -34,13 +37,14 @@ API REST para gestionar tareas y usuarios, desarrollada con FastAPI y PostgreSQL
 ## Estructura del proyecto
 
 ```text
-GestorTareas/
+task-manager-api/
 ├── app/
 │   ├── main.py
+│   ├── config.py
 │   ├── crud.py
 │   ├── database.py
-│   ├── models.py           
-│   ├── schemas.py         
+│   ├── models.py
+│   ├── schemas.py
 │   ├── security.py
 │   └── routers/
 │       ├── __init__.py
@@ -55,23 +59,36 @@ GestorTareas/
 
 ## Instalación
 
-1. Clonar el repositorio.
+### 1. Clonar el repositorio
 
-2. Crear un entorno virtual.
+```bash
+git clone https://github.com/sergiof11/task-manager-api.git
+cd task-manager-api
+```
 
-```powershell
+### 2. Crear un entorno virtual
+
+```bash
 python -m venv venv
 ```
 
-3. Activar el entorno virtual.
+### 3. Activar el entorno virtual
+
+#### Windows PowerShell
 
 ```powershell
 .\venv\Scripts\Activate
 ```
 
-4. Instalar las dependencias.
+#### Linux / macOS
 
-```powershell
+```bash
+source venv/bin/activate
+```
+
+### 4. Instalar las dependencias
+
+```bash
 pip install -r requirements.txt
 ```
 
@@ -82,7 +99,10 @@ Crear un archivo `.env` a partir de `.env.example`.
 Ejemplo:
 
 ```env
+DB_HOST=localhost
+DB_PORT=5432
 DB_NAME=gestor_tareas
+DB_USER=postgres
 DB_PASSWORD=your_password_here
 ```
 
@@ -92,11 +112,19 @@ También es necesario tener PostgreSQL instalado y crear una base de datos llama
 gestor_tareas
 ```
 
+Para los tests se utiliza una base de datos PostgreSQL separada:
+
+```text
+gestor_tareas_test
+```
+
+La configuración de la aplicación se centraliza en `app/config.py` mediante `pydantic-settings`.
+
 ## Ejecutar la API
 
 Con el entorno virtual activado:
 
-```powershell
+```bash
 python -m uvicorn app.main:app --reload
 ```
 
@@ -182,17 +210,17 @@ Ejemplo:
 }
 ```
 
-Las contraseñas no se almacenan en texto plano. Se guardan mediante un hash seguro utilizando Argon2.
+Las contraseñas no se almacenan en texto plano. Se transforman mediante Argon2 antes de guardarse en PostgreSQL.
 
 El email debe tener un formato válido y no puede estar registrado previamente.
 
 ## Tests
 
-El proyecto utiliza `pytest` y una base de datos PostgreSQL separada para los tests.
+El proyecto utiliza `pytest` y una base de datos PostgreSQL separada para evitar que los tests modifiquen los datos de desarrollo.
 
 Ejecutar todos los tests:
 
-```powershell
+```bash
 python -m pytest
 ```
 
@@ -213,7 +241,6 @@ Actualmente el proyecto cuenta con 12 tests que comprueban:
 
 ## Próximas mejoras
 
-- Centralización de configuración con `DATABASE_URL` o `pydantic-settings`
 - Ruff y CI básico con GitHub Actions
 - Migraciones de base de datos con Alembic
 - Login de usuarios
@@ -235,6 +262,17 @@ Actualmente el proyecto cuenta con 12 tests que comprueban:
 
 Proyecto en desarrollo.
 
-El CRUD de tareas, el registro de usuarios, la validación de datos, el hashing de contraseñas, SQLAlchemy y los tests básicos están implementados.
+Actualmente están implementados:
 
-La siguiente fase estará centrada en login, autenticación JWT y protección de endpoints.
+- CRUD completo de tareas
+- PostgreSQL con SQLAlchemy
+- separación entre modelos ORM y esquemas Pydantic
+- registro de usuarios
+- hashing de contraseñas con Argon2
+- validación de datos
+- configuración centralizada con `pydantic-settings`
+- organización de rutas mediante routers
+- base de datos de test separada
+- 12 tests automáticos
+
+La siguiente fase estará centrada en añadir Ruff y un flujo básico de CI con GitHub Actions antes de configurar Alembic.
