@@ -5,7 +5,7 @@ os.environ["DB_NAME"] = "gestor_tareas_test"
 from fastapi.testclient import TestClient
 from app.main import app
 from app.database import SessionLocal
-from app.db_models import TaskDB, UserDB
+from app.models import TaskDB, UserDB
 
 client = TestClient(app)
 

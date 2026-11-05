@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from app.db_models import TaskDB, UserDB
+from app.models import TaskDB, UserDB
 from app.security import hash_password
 
 

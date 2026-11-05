@@ -9,7 +9,7 @@ from app.crud import (
     update_task_db,
 )
 from app.database import get_db
-from app.models import Task, TaskCreate, TaskDeleteResponse, TaskUpdate
+from app.schemas import Task, TaskCreate, TaskDeleteResponse, TaskUpdate
 
 router = APIRouter(
     prefix="/tasks",

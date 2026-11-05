@@ -39,8 +39,8 @@ GestorTareas/
 │   ├── main.py
 │   ├── crud.py
 │   ├── database.py
-│   ├── db_models.py
-│   ├── models.py
+│   ├── models.py           
+│   ├── schemas.py         
 │   ├── security.py
 │   └── routers/
 │       ├── __init__.py
@@ -199,29 +199,37 @@ python -m pytest
 Actualmente el proyecto cuenta con 12 tests que comprueban:
 
 - listado de tareas
-- obtención de tareas por ID
+- obtención de una tarea existente por ID
+- obtención de una tarea inexistente (`404`)
 - creación de tareas
 - actualización de tareas
+- actualización de una tarea inexistente (`404`)
 - eliminación de tareas
-- errores `404`
-- validación de títulos incorrectos
+- eliminación de una tarea inexistente (`404`)
+- validación de títulos formados solo por espacios
 - registro de usuarios
-- emails duplicados
+- rechazo de emails duplicados
 - validación de emails incorrectos
-- que las contraseñas no se expongan en las respuestas
 
 ## Próximas mejoras
 
+- Centralización de configuración con `DATABASE_URL` o `pydantic-settings`
+- Ruff y CI básico con GitHub Actions
+- Migraciones de base de datos con Alembic
 - Login de usuarios
 - Autenticación con JWT
 - Protección de endpoints
 - Relación entre usuarios y tareas
-- Autorización para que cada usuario acceda únicamente a sus tareas
-- Ampliación de tests de autenticación y autorización
-- Docker
-- GitHub Actions
+- Autorización para aislar las tareas de cada usuario
+- Paginación y filtros en tareas
+- Healthcheck y manejo de errores
+- Cobertura de tests con `pytest-cov`
+- Docker y Docker Compose
+- CI completo con PostgreSQL de test y migraciones
 - Deploy en Azure
+- Revisión de secretos y configuración
 - README final para portfolio
+- Revisión completa y cierre del proyecto
 
 ## Estado del proyecto
 

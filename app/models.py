@@ -1,48 +1,31 @@
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from sqlalchemy import Boolean, Integer, String
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.database import Base
 
 
-class TaskBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+class TaskDB(Base):
+    __tablename__ = "tasks"
 
-    title: str = Field(min_length=1, max_length=200)
-
-    @field_validator("title")
-    @classmethod
-    def validate_title(cls, value: str):
-        value = value.strip()
-
-        if not value:
-            raise ValueError("El título no puede estar vacío")
-
-        return value
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    completed: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False
+    )
 
 
-class TaskCreate(TaskBase):
-    completed: bool = False
+class UserDB(Base):
+    __tablename__ = "users"
 
-
-class TaskUpdate(TaskBase):
-    completed: bool
-
-
-class Task(TaskBase):
-    id: int
-    completed: bool
-
-
-class TaskDeleteResponse(TaskBase):
-    message: str
-    id: int
-    completed: bool
-
-
-class UserCreate(BaseModel):
-    email: EmailStr
-    password: str = Field(min_length=8, max_length=128)
-
-
-class User(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    email: str
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    email: Mapped[str] = mapped_column(
+        String(255),
+        unique=True,
+        nullable=False
+    )
+    hashed_password: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False
+    )
