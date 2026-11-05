@@ -9,6 +9,3 @@ app = FastAPI()
 
 app.include_router(tasks.router)
 app.include_router(users.router)
-
-
- 

@@ -15,6 +15,8 @@ API REST para gestionar tareas y usuarios, desarrollada con FastAPI y PostgreSQL
 - Argon2
 - pytest
 - httpx
+- Ruff
+- GitHub Actions
 
 ## Funcionalidades actuales
 
@@ -33,11 +35,16 @@ API REST para gestionar tareas y usuarios, desarrollada con FastAPI y PostgreSQL
 - Organización de endpoints mediante routers
 - Base de datos PostgreSQL separada para tests
 - Tests automáticos del CRUD y registro de usuarios
+- Análisis estático y linting con Ruff
+- Integración continua con GitHub Actions
 
 ## Estructura del proyecto
 
-```text
+```text id="th89qc"
 task-manager-api/
+├── .github/
+│   └── workflows/
+│       └── ci.yml
 ├── app/
 │   ├── main.py
 │   ├── config.py
@@ -48,11 +55,12 @@ task-manager-api/
 │   ├── security.py
 │   └── routers/
 │       ├── tasks.py
-│       └── users.py       
+│       └── users.py
 ├── tests/
 │   └── test_main.py
-├── requirements.txt
 ├── .env.example
+├── pyproject.toml
+├── requirements.txt
 └── README.md
 ```
 
@@ -60,14 +68,14 @@ task-manager-api/
 
 ### 1. Clonar el repositorio
 
-```bash
+```bash id="cb7wwp"
 git clone https://github.com/sergiof11/task-manager-api.git
 cd task-manager-api
 ```
 
 ### 2. Crear un entorno virtual
 
-```bash
+```bash id="0rwpgm"
 python -m venv venv
 ```
 
@@ -75,19 +83,19 @@ python -m venv venv
 
 #### Windows PowerShell
 
-```powershell
+```powershell id="hl5xdb"
 .\venv\Scripts\Activate
 ```
 
 #### Linux / macOS
 
-```bash
+```bash id="ssn33q"
 source venv/bin/activate
 ```
 
 ### 4. Instalar las dependencias
 
-```bash
+```bash id="ycb8ll"
 pip install -r requirements.txt
 ```
 
@@ -97,7 +105,7 @@ Crear un archivo `.env` a partir de `.env.example`.
 
 Ejemplo:
 
-```env
+```env id="un6z42"
 DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=gestor_tareas
@@ -107,13 +115,13 @@ DB_PASSWORD=your_password_here
 
 También es necesario tener PostgreSQL instalado y crear una base de datos llamada:
 
-```text
+```text id="ukq09n"
 gestor_tareas
 ```
 
 Para los tests se utiliza una base de datos PostgreSQL separada:
 
-```text
+```text id="qrgfse"
 gestor_tareas_test
 ```
 
@@ -123,19 +131,19 @@ La configuración de la aplicación se centraliza en `app/config.py` mediante `p
 
 Con el entorno virtual activado:
 
-```bash
+```bash id="1paoup"
 python -m uvicorn app.main:app --reload
 ```
 
 La API estará disponible en:
 
-```text
+```text id="17r5bv"
 http://127.0.0.1:8000
 ```
 
 La documentación interactiva de FastAPI estará disponible en:
 
-```text
+```text id="0xwb0v"
 http://127.0.0.1:8000/docs
 ```
 
@@ -145,25 +153,25 @@ http://127.0.0.1:8000/docs
 
 #### Obtener todas las tareas
 
-```http
+```http id="aeihmn"
 GET /tasks
 ```
 
 #### Obtener una tarea
 
-```http
+```http id="yt6of7"
 GET /tasks/{task_id}
 ```
 
 #### Crear una tarea
 
-```http
+```http id="vl59js"
 POST /tasks
 ```
 
 Ejemplo:
 
-```json
+```json id="0mkuvn"
 {
   "title": "Estudiar FastAPI"
 }
@@ -173,13 +181,13 @@ El campo `completed` es opcional al crear una tarea y por defecto es `false`.
 
 #### Actualizar una tarea
 
-```http
+```http id="yn8gg9"
 PUT /tasks/{task_id}
 ```
 
 Ejemplo:
 
-```json
+```json id="1j5578"
 {
   "title": "Estudiar FastAPI y PostgreSQL",
   "completed": true
@@ -188,7 +196,7 @@ Ejemplo:
 
 #### Eliminar una tarea
 
-```http
+```http id="ivlz9b"
 DELETE /tasks/{task_id}
 ```
 
@@ -196,13 +204,13 @@ DELETE /tasks/{task_id}
 
 #### Registrar un usuario
 
-```http
+```http id="n7gm94"
 POST /users/register
 ```
 
 Ejemplo:
 
-```json
+```json id="swhwm7"
 {
   "email": "user@example.com",
   "password": "Password123"
@@ -219,7 +227,7 @@ El proyecto utiliza `pytest` y una base de datos PostgreSQL separada para evitar
 
 Ejecutar todos los tests:
 
-```bash
+```bash id="pj3vqe"
 python -m pytest
 ```
 
@@ -238,9 +246,43 @@ Actualmente el proyecto cuenta con 12 tests que comprueban:
 - rechazo de emails duplicados
 - validación de emails incorrectos
 
+## Calidad de código
+
+El proyecto utiliza Ruff para analizar el código y detectar problemas de estilo, imports y posibles errores.
+
+Ejecutar Ruff:
+
+```bash id="zg7ehv"
+ruff check .
+```
+
+Antes de realizar commits importantes se recomienda ejecutar:
+
+```bash id="0b6i7y"
+ruff check .
+python -m pytest
+```
+
+## Integración continua
+
+El proyecto utiliza GitHub Actions para ejecutar automáticamente las comprobaciones de calidad y los tests después de cada `push` y en los pull requests.
+
+El workflow de CI:
+
+- crea un entorno Ubuntu temporal
+- levanta un servicio PostgreSQL para tests
+- instala Python y las dependencias del proyecto
+- ejecuta Ruff
+- ejecuta los tests con pytest
+
+La configuración se encuentra en:
+
+```text id="nt226y"
+.github/workflows/ci.yml
+```
+
 ## Próximas mejoras
 
-- Ruff y CI básico con GitHub Actions
 - Migraciones de base de datos con Alembic
 - Login de usuarios
 - Autenticación con JWT
@@ -273,5 +315,7 @@ Actualmente están implementados:
 - organización de rutas mediante routers
 - base de datos de test separada
 - 12 tests automáticos
+- análisis de código con Ruff
+- CI básico con GitHub Actions
 
-La siguiente fase estará centrada en añadir Ruff y un flujo básico de CI con GitHub Actions antes de configurar Alembic.
+La siguiente fase estará centrada en introducir migraciones de base de datos con Alembic.

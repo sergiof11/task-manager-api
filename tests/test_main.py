@@ -3,8 +3,9 @@ import os
 os.environ["DB_NAME"] = "gestor_tareas_test"
 
 from fastapi.testclient import TestClient
-from app.main import app
+
 from app.database import SessionLocal
+from app.main import app
 from app.models import TaskDB, UserDB
 
 client = TestClient(app)
@@ -229,3 +230,4 @@ def test_register_invalid_email():
     )
 
     assert response.status_code == 422
+
