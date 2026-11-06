@@ -14,6 +14,7 @@ API REST para gestionar tareas y usuarios, desarrollada con FastAPI y PostgreSQL
 - pydantic-settings
 - pwdlib
 - Argon2
+- PyJWT
 - pytest
 - httpx
 - Ruff
@@ -123,6 +124,10 @@ DB_PORT=5432
 DB_NAME=gestor_tareas
 DB_USER=postgres
 DB_PASSWORD=your_password_here
+
+JWT_SECRET_KEY=your_secret_key_here
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
 ```
 
 También es necesario tener PostgreSQL instalado y crear una base de datos llamada:
