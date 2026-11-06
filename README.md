@@ -9,6 +9,7 @@ API REST para gestionar tareas y usuarios, desarrollada con FastAPI y PostgreSQL
 - PostgreSQL
 - SQLAlchemy
 - psycopg
+- Alembic
 - Pydantic
 - pydantic-settings
 - pwdlib
@@ -31,6 +32,7 @@ API REST para gestionar tareas y usuarios, desarrollada con FastAPI y PostgreSQL
 - Protección frente a emails duplicados
 - Hash seguro de contraseñas con Argon2
 - Acceso a PostgreSQL mediante SQLAlchemy
+- Migraciones y versionado del esquema con Alembic
 - Configuración centralizada con `pydantic-settings`
 - Organización de endpoints mediante routers
 - Base de datos PostgreSQL separada para tests
@@ -40,11 +42,17 @@ API REST para gestionar tareas y usuarios, desarrollada con FastAPI y PostgreSQL
 
 ## Estructura del proyecto
 
-```text id="th89qc"
+```text
 task-manager-api/
 ├── .github/
 │   └── workflows/
 │       └── ci.yml
+├── alembic/
+│   ├── versions/
+│   │   └── 902afd450102_initial_schema.py
+│   ├── env.py
+│   ├── README
+│   └── script.py.mako
 ├── app/
 │   ├── main.py
 │   ├── config.py
@@ -59,23 +67,27 @@ task-manager-api/
 ├── tests/
 │   └── test_main.py
 ├── .env.example
+├── .gitignore
+├── alembic.ini
 ├── pyproject.toml
 ├── requirements.txt
 └── README.md
 ```
 
+Los archivos y carpetas locales como `.env`, `venv/`, `__pycache__/`, `.pytest_cache/` y `.ruff_cache/` están excluidos mediante `.gitignore`.
+
 ## Instalación
 
 ### 1. Clonar el repositorio
 
-```bash id="cb7wwp"
+```bash
 git clone https://github.com/sergiof11/task-manager-api.git
 cd task-manager-api
 ```
 
 ### 2. Crear un entorno virtual
 
-```bash id="0rwpgm"
+```bash
 python -m venv venv
 ```
 
@@ -83,19 +95,19 @@ python -m venv venv
 
 #### Windows PowerShell
 
-```powershell id="hl5xdb"
+```powershell
 .\venv\Scripts\Activate
 ```
 
 #### Linux / macOS
 
-```bash id="ssn33q"
+```bash
 source venv/bin/activate
 ```
 
 ### 4. Instalar las dependencias
 
-```bash id="ycb8ll"
+```bash
 pip install -r requirements.txt
 ```
 
@@ -105,7 +117,7 @@ Crear un archivo `.env` a partir de `.env.example`.
 
 Ejemplo:
 
-```env id="un6z42"
+```env
 DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=gestor_tareas
@@ -115,35 +127,71 @@ DB_PASSWORD=your_password_here
 
 También es necesario tener PostgreSQL instalado y crear una base de datos llamada:
 
-```text id="ukq09n"
+```text
 gestor_tareas
 ```
 
 Para los tests se utiliza una base de datos PostgreSQL separada:
 
-```text id="qrgfse"
+```text
 gestor_tareas_test
 ```
 
 La configuración de la aplicación se centraliza en `app/config.py` mediante `pydantic-settings`.
 
+## Migraciones de base de datos
+
+El proyecto utiliza Alembic para gestionar y versionar los cambios del esquema de PostgreSQL.
+
+Aplicar todas las migraciones pendientes:
+
+```bash
+alembic upgrade head
+```
+
+Comprobar la versión actual de la base de datos:
+
+```bash
+alembic current
+```
+
+Crear una nueva migración detectando cambios en los modelos SQLAlchemy:
+
+```bash
+alembic revision --autogenerate -m "descripcion de la migracion"
+```
+
+Deshacer la última migración:
+
+```bash
+alembic downgrade -1
+```
+
+La aplicación ya no utiliza `Base.metadata.create_all()` para crear o evolucionar las tablas. El esquema de PostgreSQL se gestiona mediante las migraciones de Alembic.
+
 ## Ejecutar la API
 
-Con el entorno virtual activado:
+Antes de iniciar la aplicación, asegúrate de que las migraciones están aplicadas:
 
-```bash id="1paoup"
+```bash
+alembic upgrade head
+```
+
+Después, con el entorno virtual activado:
+
+```bash
 python -m uvicorn app.main:app --reload
 ```
 
 La API estará disponible en:
 
-```text id="17r5bv"
+```text
 http://127.0.0.1:8000
 ```
 
 La documentación interactiva de FastAPI estará disponible en:
 
-```text id="0xwb0v"
+```text
 http://127.0.0.1:8000/docs
 ```
 
@@ -153,25 +201,25 @@ http://127.0.0.1:8000/docs
 
 #### Obtener todas las tareas
 
-```http id="aeihmn"
+```http
 GET /tasks
 ```
 
 #### Obtener una tarea
 
-```http id="yt6of7"
+```http
 GET /tasks/{task_id}
 ```
 
 #### Crear una tarea
 
-```http id="vl59js"
+```http
 POST /tasks
 ```
 
 Ejemplo:
 
-```json id="0mkuvn"
+```json
 {
   "title": "Estudiar FastAPI"
 }
@@ -181,13 +229,13 @@ El campo `completed` es opcional al crear una tarea y por defecto es `false`.
 
 #### Actualizar una tarea
 
-```http id="yn8gg9"
+```http
 PUT /tasks/{task_id}
 ```
 
 Ejemplo:
 
-```json id="1j5578"
+```json
 {
   "title": "Estudiar FastAPI y PostgreSQL",
   "completed": true
@@ -196,7 +244,7 @@ Ejemplo:
 
 #### Eliminar una tarea
 
-```http id="ivlz9b"
+```http
 DELETE /tasks/{task_id}
 ```
 
@@ -204,13 +252,13 @@ DELETE /tasks/{task_id}
 
 #### Registrar un usuario
 
-```http id="n7gm94"
+```http
 POST /users/register
 ```
 
 Ejemplo:
 
-```json id="swhwm7"
+```json
 {
   "email": "user@example.com",
   "password": "Password123"
@@ -227,7 +275,7 @@ El proyecto utiliza `pytest` y una base de datos PostgreSQL separada para evitar
 
 Ejecutar todos los tests:
 
-```bash id="pj3vqe"
+```bash
 python -m pytest
 ```
 
@@ -252,38 +300,40 @@ El proyecto utiliza Ruff para analizar el código y detectar problemas de estilo
 
 Ejecutar Ruff:
 
-```bash id="zg7ehv"
+```bash
 ruff check .
 ```
 
 Antes de realizar commits importantes se recomienda ejecutar:
 
-```bash id="0b6i7y"
+```bash
 ruff check .
 python -m pytest
 ```
 
 ## Integración continua
 
-El proyecto utiliza GitHub Actions para ejecutar automáticamente las comprobaciones de calidad y los tests después de cada `push` y en los pull requests.
+El proyecto utiliza GitHub Actions para ejecutar automáticamente las comprobaciones después de cada `push` y en los pull requests.
 
 El workflow de CI:
 
 - crea un entorno Ubuntu temporal
-- levanta un servicio PostgreSQL para tests
+- levanta una instancia PostgreSQL temporal
 - instala Python y las dependencias del proyecto
 - ejecuta Ruff
+- aplica las migraciones con `alembic upgrade head`
 - ejecuta los tests con pytest
+
+Esto permite comprobar que una base de datos PostgreSQL vacía puede construirse correctamente utilizando únicamente las migraciones del proyecto.
 
 La configuración se encuentra en:
 
-```text id="nt226y"
+```text
 .github/workflows/ci.yml
 ```
 
 ## Próximas mejoras
 
-- Migraciones de base de datos con Alembic
 - Login de usuarios
 - Autenticación con JWT
 - Protección de endpoints
@@ -293,7 +343,7 @@ La configuración se encuentra en:
 - Healthcheck y manejo de errores
 - Cobertura de tests con `pytest-cov`
 - Docker y Docker Compose
-- CI completo con PostgreSQL de test y migraciones
+- CI completo con cobertura y validaciones adicionales
 - Deploy en Azure
 - Revisión de secretos y configuración
 - README final para portfolio
@@ -313,9 +363,11 @@ Actualmente están implementados:
 - validación de datos
 - configuración centralizada con `pydantic-settings`
 - organización de rutas mediante routers
+- migraciones y versionado de base de datos con Alembic
+- migración inicial reproducible desde una base de datos vacía
 - base de datos de test separada
 - 12 tests automáticos
 - análisis de código con Ruff
-- CI básico con GitHub Actions
+- CI con GitHub Actions, PostgreSQL y migraciones
 
-La siguiente fase estará centrada en introducir migraciones de base de datos con Alembic.
+La siguiente fase estará centrada en implementar login de usuarios y autenticación mediante JWT.
