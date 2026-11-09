@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 
 from app.crud import find_user_by_email
 from app.database import get_db
-from app.schemas import User, UserLogin
-from app.security import verify_password
+from app.schemas import Token, UserLogin
+from app.security import create_access_token, verify_password
 
 router = APIRouter(
     prefix="/auth",
@@ -12,7 +12,7 @@ router = APIRouter(
 )
 
 
-@router.post("/login", response_model=User)
+@router.post("/login", response_model=Token)
 def login(
     credentials: UserLogin,
     db: Session = Depends(get_db),
@@ -28,4 +28,9 @@ def login(
             detail="Email o contraseña incorrectos",
         )
 
-    return user
+    access_token = create_access_token(user.id)
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+    }

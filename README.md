@@ -30,6 +30,8 @@ API REST para gestionar tareas y usuarios, desarrollada con FastAPI y PostgreSQL
 - Validación de datos
 - Registro de usuarios
 - Login de usuarios
+- Generación de access tokens JWT
+- Tokens JWT con identificación de usuario y expiración
 - Validación de emails
 - Protección frente a emails duplicados
 - Verificación segura de contraseñas
@@ -39,7 +41,7 @@ API REST para gestionar tareas y usuarios, desarrollada con FastAPI y PostgreSQL
 - Configuración centralizada con `pydantic-settings`
 - Organización de endpoints mediante routers
 - Base de datos PostgreSQL separada para tests
-- Tests automáticos del CRUD, registro y login de usuarios
+- Tests automáticos del CRUD, registro, login y generación de JWT
 - Análisis estático y linting con Ruff
 - Integración continua con GitHub Actions
 
@@ -294,9 +296,27 @@ Ejemplo:
 }
 ```
 
-Actualmente el endpoint comprueba que el usuario existe y que la contraseña coincide con el hash almacenado.
+El endpoint comprueba que el usuario existe y que la contraseña coincide con el hash almacenado.
 
-Si las credenciales son correctas, devuelve los datos públicos del usuario.
+Si las credenciales son correctas, genera y devuelve un access token JWT:
+
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIs...",
+  "token_type": "bearer"
+}
+```
+
+El token contiene:
+
+- `sub`: ID del usuario autenticado
+- `exp`: fecha y hora de expiración del token
+
+La duración del token se configura mediante:
+
+```text
+ACCESS_TOKEN_EXPIRE_MINUTES
+```
 
 Si el email no existe o la contraseña es incorrecta, devuelve:
 
@@ -306,7 +326,7 @@ Si el email no existe o la contraseña es incorrecta, devuelve:
 
 La API utiliza el mismo mensaje de error para ambos casos para no revelar si un email concreto está registrado.
 
-La generación del token JWT se implementará en la siguiente fase.
+La validación de los tokens y la protección de endpoints se implementarán en la siguiente fase.
 
 ## Tests
 
@@ -332,9 +352,11 @@ Actualmente el proyecto cuenta con 15 tests que comprueban:
 - registro de usuarios
 - rechazo de emails duplicados
 - validación de emails incorrectos
-- login con credenciales correctas
+- login con credenciales correctas y generación de JWT válido
 - rechazo de login con contraseña incorrecta (`401`)
 - rechazo de login con usuario inexistente (`401`)
+
+El test de login correcto también decodifica el JWT generado para comprobar que la firma es válida y que contiene los campos `sub` y `exp`.
 
 ## Calidad de código
 
@@ -376,14 +398,15 @@ La configuración se encuentra en:
 
 ## Próximas mejoras
 
-- Generación de access tokens con JWT
 - Validación de tokens JWT
+- Obtención del usuario autenticado mediante el token
 - Protección de endpoints
 - Relación entre usuarios y tareas
 - Autorización para aislar las tareas de cada usuario
 - Paginación y filtros en tareas
 - Healthcheck y manejo de errores
 - Cobertura de tests con `pytest-cov`
+- Refactor de estructura de tests y módulos
 - Docker y Docker Compose
 - CI completo con cobertura y validaciones adicionales
 - Deploy en Azure
@@ -404,9 +427,12 @@ Actualmente están implementados:
 - login de usuarios con verificación de credenciales
 - hashing de contraseñas con Argon2
 - verificación segura de contraseñas
-- validación de datos
+- generación de access tokens JWT
+- identificación del usuario mediante el claim `sub`
+- expiración de tokens mediante el claim `exp`
 - configuración centralizada con `pydantic-settings`
-- configuración base para JWT
+- configuración JWT mediante variables de entorno
+- validación de datos
 - organización de rutas mediante routers
 - migraciones y versionado de base de datos con Alembic
 - migración inicial reproducible desde una base de datos vacía
@@ -415,4 +441,4 @@ Actualmente están implementados:
 - análisis de código con Ruff
 - CI con GitHub Actions, PostgreSQL y migraciones
 
-La siguiente fase estará centrada en generar access tokens JWT desde el login.
+La siguiente fase estará centrada en validar los access tokens JWT, obtener el usuario autenticado y preparar la protección de endpoints.

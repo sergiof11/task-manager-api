@@ -2,8 +2,10 @@ import os
 
 os.environ["DB_NAME"] = "gestor_tareas_test"
 
+import jwt
 from fastapi.testclient import TestClient
 
+from app.config import settings
 from app.database import SessionLocal
 from app.main import app
 from app.models import TaskDB, UserDB
@@ -255,9 +257,18 @@ def test_login_user():
 
     data = response.json()
 
-    assert data["email"] == "login@example.com"
-    assert "password" not in data
-    assert "hashed_password" not in data
+    assert "access_token" in data
+    assert isinstance(data["access_token"], str)
+    assert data["token_type"] == "bearer"
+
+    payload = jwt.decode(
+        data["access_token"],
+        settings.jwt_secret_key,
+        algorithms=[settings.jwt_algorithm],
+    )
+
+    assert "sub" in payload
+    assert "exp" in payload
 
 
 def test_login_wrong_password():
