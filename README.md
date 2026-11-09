@@ -29,15 +29,17 @@ API REST para gestionar tareas y usuarios, desarrollada con FastAPI y PostgreSQL
 - Eliminar tareas
 - Validación de datos
 - Registro de usuarios
+- Login de usuarios
 - Validación de emails
 - Protección frente a emails duplicados
+- Verificación segura de contraseñas
 - Hash seguro de contraseñas con Argon2
 - Acceso a PostgreSQL mediante SQLAlchemy
 - Migraciones y versionado del esquema con Alembic
 - Configuración centralizada con `pydantic-settings`
 - Organización de endpoints mediante routers
 - Base de datos PostgreSQL separada para tests
-- Tests automáticos del CRUD y registro de usuarios
+- Tests automáticos del CRUD, registro y login de usuarios
 - Análisis estático y linting con Ruff
 - Integración continua con GitHub Actions
 
@@ -63,6 +65,7 @@ task-manager-api/
 │   ├── schemas.py
 │   ├── security.py
 │   └── routers/
+│       ├── auth.py
 │       ├── tasks.py
 │       └── users.py
 ├── tests/
@@ -274,6 +277,37 @@ Las contraseñas no se almacenan en texto plano. Se transforman mediante Argon2 
 
 El email debe tener un formato válido y no puede estar registrado previamente.
 
+### Auth
+
+#### Login de usuario
+
+```http
+POST /auth/login
+```
+
+Ejemplo:
+
+```json
+{
+  "email": "user@example.com",
+  "password": "Password123"
+}
+```
+
+Actualmente el endpoint comprueba que el usuario existe y que la contraseña coincide con el hash almacenado.
+
+Si las credenciales son correctas, devuelve los datos públicos del usuario.
+
+Si el email no existe o la contraseña es incorrecta, devuelve:
+
+```text
+401 Unauthorized
+```
+
+La API utiliza el mismo mensaje de error para ambos casos para no revelar si un email concreto está registrado.
+
+La generación del token JWT se implementará en la siguiente fase.
+
 ## Tests
 
 El proyecto utiliza `pytest` y una base de datos PostgreSQL separada para evitar que los tests modifiquen los datos de desarrollo.
@@ -284,7 +318,7 @@ Ejecutar todos los tests:
 python -m pytest
 ```
 
-Actualmente el proyecto cuenta con 12 tests que comprueban:
+Actualmente el proyecto cuenta con 15 tests que comprueban:
 
 - listado de tareas
 - obtención de una tarea existente por ID
@@ -298,6 +332,9 @@ Actualmente el proyecto cuenta con 12 tests que comprueban:
 - registro de usuarios
 - rechazo de emails duplicados
 - validación de emails incorrectos
+- login con credenciales correctas
+- rechazo de login con contraseña incorrecta (`401`)
+- rechazo de login con usuario inexistente (`401`)
 
 ## Calidad de código
 
@@ -339,8 +376,8 @@ La configuración se encuentra en:
 
 ## Próximas mejoras
 
-- Login de usuarios
-- Autenticación con JWT
+- Generación de access tokens con JWT
+- Validación de tokens JWT
 - Protección de endpoints
 - Relación entre usuarios y tareas
 - Autorización para aislar las tareas de cada usuario
@@ -364,15 +401,18 @@ Actualmente están implementados:
 - PostgreSQL con SQLAlchemy
 - separación entre modelos ORM y esquemas Pydantic
 - registro de usuarios
+- login de usuarios con verificación de credenciales
 - hashing de contraseñas con Argon2
+- verificación segura de contraseñas
 - validación de datos
 - configuración centralizada con `pydantic-settings`
+- configuración base para JWT
 - organización de rutas mediante routers
 - migraciones y versionado de base de datos con Alembic
 - migración inicial reproducible desde una base de datos vacía
 - base de datos de test separada
-- 12 tests automáticos
+- 15 tests automáticos
 - análisis de código con Ruff
 - CI con GitHub Actions, PostgreSQL y migraciones
 
-La siguiente fase estará centrada en implementar login de usuarios y autenticación mediante JWT.
+La siguiente fase estará centrada en generar access tokens JWT desde el login.

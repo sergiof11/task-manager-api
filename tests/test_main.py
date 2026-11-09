@@ -231,3 +231,68 @@ def test_register_invalid_email():
 
     assert response.status_code == 422
 
+
+def test_login_user():
+    clear_users()
+
+    client.post(
+        "/users/register",
+        json={
+            "email": "login@example.com",
+            "password": "Password123",
+        },
+    )
+
+    response = client.post(
+        "/auth/login",
+        json={
+            "email": "login@example.com",
+            "password": "Password123",
+        },
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["email"] == "login@example.com"
+    assert "password" not in data
+    assert "hashed_password" not in data
+
+
+def test_login_wrong_password():
+    clear_users()
+
+    client.post(
+        "/users/register",
+        json={
+            "email": "login@example.com",
+            "password": "Password123",
+        },
+    )
+
+    response = client.post(
+        "/auth/login",
+        json={
+            "email": "login@example.com",
+            "password": "WrongPassword",
+        },
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Email o contraseña incorrectos"
+
+
+def test_login_user_not_found():
+    clear_users()
+
+    response = client.post(
+        "/auth/login",
+        json={
+            "email": "doesnotexist@example.com",
+            "password": "Password123",
+        },
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Email o contraseña incorrectos"
