@@ -36,6 +36,10 @@ API REST para gestionar tareas y usuarios, desarrollada con FastAPI y PostgreSQL
 - Obtención del usuario autenticado mediante JWT
 - Endpoint protegido `GET /auth/me`
 - Protección mediante JWT de todos los endpoints `/tasks`
+- Relación entre usuarios y tareas mediante `user_id`
+- Asignación automática del usuario autenticado al crear una tarea
+- Foreign key entre `tasks.user_id` y `users.id`
+- Índice sobre `tasks.user_id`
 - Respuestas `401 Unauthorized` para peticiones sin token o con token inválido
 - Cabecera `WWW-Authenticate: Bearer` en errores de autenticación
 - Validación de emails
@@ -61,7 +65,8 @@ task-manager-api/
 │       └── ci.yml
 ├── alembic/
 │   ├── versions/
-│   │   └── 902afd450102_initial_schema.py
+│   │   ├── 902afd450102_initial_schema.py
+│   │   └── 5fc071f53c9f_add_user_to_tasks.py
 │   ├── env.py
 │   ├── README
 │   └── script.py.mako
@@ -164,6 +169,18 @@ La configuración de la aplicación se centraliza en `app/config.py` mediante `p
 
 El proyecto utiliza Alembic para gestionar y versionar los cambios del esquema de PostgreSQL.
 
+Actualmente existen dos migraciones:
+
+- `902afd450102_initial_schema.py`: crea las tablas iniciales `users` y `tasks`
+- `5fc071f53c9f_add_user_to_tasks.py`: añade `user_id` a las tareas y crea la relación con `users`
+
+La relación entre tareas y usuarios utiliza:
+
+- `tasks.user_id`
+- foreign key hacia `users.id`
+- índice sobre `tasks.user_id`
+- restricción `NOT NULL` para garantizar que toda tarea tenga propietario
+
 Aplicar todas las migraciones pendientes:
 
 ```bash
@@ -240,6 +257,14 @@ junto con:
 WWW-Authenticate: Bearer
 ```
 
+Cada tarea almacena internamente el ID del usuario que la creó mediante `user_id`.
+
+El cliente no envía manualmente este valor. La API obtiene el usuario autenticado a partir del JWT y asigna automáticamente:
+
+```text
+tasks.user_id = current_user.id
+```
+
 #### Obtener todas las tareas
 
 ```http
@@ -267,6 +292,8 @@ Ejemplo:
 ```
 
 El campo `completed` es opcional al crear una tarea y por defecto es `false`.
+
+El propietario de la tarea se obtiene automáticamente del usuario autenticado y no debe enviarse en el cuerpo de la petición.
 
 #### Actualizar una tarea
 
@@ -416,7 +443,7 @@ tests/
 
 Los tests se distribuyen de la siguiente forma:
 
-- `test_tasks.py`: CRUD, validaciones y autenticación de tareas
+- `test_tasks.py`: CRUD, validaciones, autenticación y propiedad de tareas
 - `test_users.py`: registro y validaciones de usuarios
 - `test_auth.py`: login, generación de JWT y autenticación
 - `conftest.py`: configuración y fixtures compartidas
@@ -427,7 +454,7 @@ Ejecutar todos los tests:
 python -m pytest
 ```
 
-Actualmente el proyecto cuenta con 20 tests que comprueban:
+Actualmente el proyecto cuenta con 21 tests que comprueban:
 
 - listado de tareas con usuario autenticado
 - rechazo del acceso a tareas sin token (`401`)
@@ -449,6 +476,9 @@ Actualmente el proyecto cuenta con 20 tests que comprueban:
 - rechazo de login con usuario inexistente (`401`)
 - obtención del usuario autenticado con un JWT válido
 - rechazo de tokens inválidos o expirados (`401`)
+- comprobación de que una tarea creada pertenece al usuario autenticado
+
+El test de propiedad comprueba directamente en PostgreSQL que el `user_id` almacenado en la tarea coincide con el ID contenido en el claim `sub` del JWT del usuario autenticado.
 
 Los tests de autenticación comprueban también que el JWT generado tiene una firma válida, contiene los claims `sub` y `exp` y permite recuperar correctamente al usuario autenticado.
 
@@ -492,9 +522,10 @@ La configuración se encuentra en:
 
 ## Próximas mejoras
 
-- Relación entre usuarios y tareas mediante `user_id`
-- Migración Alembic para la nueva relación
 - Autorización para aislar las tareas de cada usuario
+- Listado de únicamente las tareas del usuario autenticado
+- Protección frente al acceso, modificación o eliminación de tareas de otros usuarios
+- Tests de aislamiento utilizando múltiples usuarios
 - Paginación y filtros en tareas
 - Healthcheck y manejo de errores
 - Cobertura de tests con `pytest-cov`
@@ -526,6 +557,11 @@ Actualmente están implementados:
 - obtención del usuario autenticado mediante JWT
 - endpoint protegido `GET /auth/me`
 - protección JWT de todos los endpoints `/tasks`
+- relación entre tareas y usuarios mediante `user_id`
+- foreign key `tasks.user_id → users.id`
+- índice sobre `tasks.user_id`
+- asignación automática del propietario de una tarea desde el JWT
+- migración Alembic `5fc071f53c9f_add_user_to_tasks.py`
 - respuestas `401` para peticiones no autenticadas
 - cabecera `WWW-Authenticate: Bearer`
 - dependencias de autenticación separadas en `app/dependencies.py`
@@ -534,14 +570,15 @@ Actualmente están implementados:
 - validación de datos
 - organización de rutas mediante routers
 - migraciones y versionado de base de datos con Alembic
-- migración inicial reproducible desde una base de datos vacía
+- migraciones reproducibles desde una base de datos vacía
 - base de datos de test separada
 - suite de tests separada por tareas, usuarios y autenticación
 - fixtures compartidas mediante `conftest.py`
 - fixture `auth_headers` para tests autenticados
 - limpieza automática de la base de datos entre tests
-- 20 tests automáticos
+- comprobación automática de la propiedad de las tareas
+- 21 tests automáticos
 - análisis de código con Ruff
 - CI con GitHub Actions, PostgreSQL y migraciones
 
-La siguiente fase estará centrada en relacionar cada tarea con su usuario mediante `user_id` y Alembic, preparando el aislamiento de tareas entre usuarios.
+La siguiente fase estará centrada en aplicar autorización real sobre las tareas para que cada usuario solo pueda listar, consultar, modificar y eliminar sus propias tareas.

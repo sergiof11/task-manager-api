@@ -12,10 +12,16 @@ def find_task_by_id(db: Session, task_id: int):
     return db.query(TaskDB).filter(TaskDB.id == task_id).first()
 
 
-def create_task_db(db: Session, title: str, completed: bool):
+def create_task_db(
+    db: Session,
+    title: str,
+    completed: bool,
+    user_id: int,
+):
     task = TaskDB(
         title=title,
-        completed=completed
+        completed=completed,
+        user_id=user_id,
     )
 
     db.add(task)

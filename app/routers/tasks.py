@@ -10,6 +10,7 @@ from app.crud import (
 )
 from app.database import get_db
 from app.dependencies import get_current_user
+from app.models import UserDB
 from app.schemas import Task, TaskCreate, TaskDeleteResponse, TaskUpdate
 
 router = APIRouter(
@@ -44,11 +45,13 @@ def get_task(
 def create_task(
     task: TaskCreate,
     db: Session = Depends(get_db),
+    current_user: UserDB = Depends(get_current_user),
 ):
     return create_task_db(
         db,
         task.title,
         task.completed,
+        current_user.id,
     )
 
 

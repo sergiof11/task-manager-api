@@ -1,3 +1,10 @@
+import jwt
+
+from app.config import settings
+from app.database import SessionLocal
+from app.models import TaskDB
+
+
 def test_get_tasks(client, auth_headers):
     response = client.get(
         "/tasks",
@@ -171,3 +178,37 @@ def test_create_task_with_empty_title(client, auth_headers):
     )
 
     assert response.status_code == 422
+
+
+def test_created_task_belongs_to_authenticated_user(client, auth_headers):
+    response = client.post(
+        "/tasks",
+        json={
+            "title": "Tarea con propietario",
+        },
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 201
+
+    task_id = response.json()["id"]
+
+    token = auth_headers["Authorization"].replace("Bearer ", "")
+
+    payload = jwt.decode(
+        token,
+        settings.jwt_secret_key,
+        algorithms=[settings.jwt_algorithm],
+    )
+
+    user_id = int(payload["sub"])
+
+    db = SessionLocal()
+
+    try:
+        task = db.query(TaskDB).filter(TaskDB.id == task_id).first()
+
+        assert task is not None
+        assert task.user_id == user_id
+    finally:
+        db.close()
