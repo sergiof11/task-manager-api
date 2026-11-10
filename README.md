@@ -44,13 +44,14 @@ API REST para gestionar tareas y usuarios, desarrollada con FastAPI y PostgreSQL
 - Configuración centralizada con `pydantic-settings`
 - Organización de endpoints mediante routers
 - Base de datos PostgreSQL separada para tests
-- Tests automáticos del CRUD, registro, login y autenticación JWT
+- Suite de tests organizada por tareas, usuarios y autenticación
+- Fixtures compartidas con pytest
 - Análisis estático y linting con Ruff
 - Integración continua con GitHub Actions
 
 ## Estructura del proyecto
 
-```text
+```text id="npu41w"
 task-manager-api/
 ├── .github/
 │   └── workflows/
@@ -75,7 +76,10 @@ task-manager-api/
 │       ├── tasks.py
 │       └── users.py
 ├── tests/
-│   └── test_main.py
+│   ├── conftest.py
+│   ├── test_auth.py
+│   ├── test_tasks.py
+│   └── test_users.py
 ├── .env.example
 ├── .gitignore
 ├── alembic.ini
@@ -90,14 +94,14 @@ Los archivos y carpetas locales como `.env`, `venv/`, `__pycache__/`, `.pytest_c
 
 ### 1. Clonar el repositorio
 
-```bash
+```bash id="7d50vv"
 git clone https://github.com/sergiof11/task-manager-api.git
 cd task-manager-api
 ```
 
 ### 2. Crear un entorno virtual
 
-```bash
+```bash id="1ckq1f"
 python -m venv venv
 ```
 
@@ -105,19 +109,19 @@ python -m venv venv
 
 #### Windows PowerShell
 
-```powershell
+```powershell id="b36ydg"
 .\venv\Scripts\Activate
 ```
 
 #### Linux / macOS
 
-```bash
+```bash id="o5rqz5"
 source venv/bin/activate
 ```
 
 ### 4. Instalar las dependencias
 
-```bash
+```bash id="c1ji2c"
 pip install -r requirements.txt
 ```
 
@@ -127,7 +131,7 @@ Crear un archivo `.env` a partir de `.env.example`.
 
 Ejemplo:
 
-```env
+```env id="e8qk04"
 DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=gestor_tareas
@@ -141,13 +145,13 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 
 También es necesario tener PostgreSQL instalado y crear una base de datos llamada:
 
-```text
+```text id="h09a8z"
 gestor_tareas
 ```
 
 Para los tests se utiliza una base de datos PostgreSQL separada:
 
-```text
+```text id="i7hmdy"
 gestor_tareas_test
 ```
 
@@ -159,25 +163,25 @@ El proyecto utiliza Alembic para gestionar y versionar los cambios del esquema d
 
 Aplicar todas las migraciones pendientes:
 
-```bash
+```bash id="thnirn"
 alembic upgrade head
 ```
 
 Comprobar la versión actual de la base de datos:
 
-```bash
+```bash id="uyikxh"
 alembic current
 ```
 
 Crear una nueva migración detectando cambios en los modelos SQLAlchemy:
 
-```bash
+```bash id="teqi6n"
 alembic revision --autogenerate -m "descripcion de la migracion"
 ```
 
 Deshacer la última migración:
 
-```bash
+```bash id="6hq4z8"
 alembic downgrade -1
 ```
 
@@ -187,25 +191,25 @@ La aplicación ya no utiliza `Base.metadata.create_all()` para crear o evolucion
 
 Antes de iniciar la aplicación, asegúrate de que las migraciones están aplicadas:
 
-```bash
+```bash id="kr6crb"
 alembic upgrade head
 ```
 
 Después, con el entorno virtual activado:
 
-```bash
+```bash id="ws7z94"
 python -m uvicorn app.main:app --reload
 ```
 
 La API estará disponible en:
 
-```text
+```text id="37dg7t"
 http://127.0.0.1:8000
 ```
 
 La documentación interactiva de FastAPI estará disponible en:
 
-```text
+```text id="9ggdvf"
 http://127.0.0.1:8000/docs
 ```
 
@@ -215,25 +219,25 @@ http://127.0.0.1:8000/docs
 
 #### Obtener todas las tareas
 
-```http
+```http id="i13i77"
 GET /tasks
 ```
 
 #### Obtener una tarea
 
-```http
+```http id="lgcxuq"
 GET /tasks/{task_id}
 ```
 
 #### Crear una tarea
 
-```http
+```http id="s9528z"
 POST /tasks
 ```
 
 Ejemplo:
 
-```json
+```json id="jsl4o5"
 {
   "title": "Estudiar FastAPI"
 }
@@ -243,13 +247,13 @@ El campo `completed` es opcional al crear una tarea y por defecto es `false`.
 
 #### Actualizar una tarea
 
-```http
+```http id="7552lg"
 PUT /tasks/{task_id}
 ```
 
 Ejemplo:
 
-```json
+```json id="1gblnp"
 {
   "title": "Estudiar FastAPI y PostgreSQL",
   "completed": true
@@ -258,7 +262,7 @@ Ejemplo:
 
 #### Eliminar una tarea
 
-```http
+```http id="8tqgij"
 DELETE /tasks/{task_id}
 ```
 
@@ -266,13 +270,13 @@ DELETE /tasks/{task_id}
 
 #### Registrar un usuario
 
-```http
+```http id="1n102j"
 POST /users/register
 ```
 
 Ejemplo:
 
-```json
+```json id="l2xw7k"
 {
   "email": "user@example.com",
   "password": "Password123"
@@ -287,13 +291,13 @@ El email debe tener un formato válido y no puede estar registrado previamente.
 
 #### Login de usuario
 
-```http
+```http id="c9869y"
 POST /auth/login
 ```
 
 Ejemplo:
 
-```json
+```json id="hszpt7"
 {
   "email": "user@example.com",
   "password": "Password123"
@@ -304,7 +308,7 @@ El endpoint comprueba que el usuario existe y que la contraseña coincide con el
 
 Si las credenciales son correctas, genera y devuelve un access token JWT:
 
-```json
+```json id="3k4394"
 {
   "access_token": "eyJhbGciOiJIUzI1NiIs...",
   "token_type": "bearer"
@@ -318,13 +322,13 @@ El token contiene:
 
 La duración del token se configura mediante:
 
-```text
+```text id="wa3yrp"
 ACCESS_TOKEN_EXPIRE_MINUTES
 ```
 
 Si el email no existe o la contraseña es incorrecta, devuelve:
 
-```text
+```text id="cf3ad0"
 401 Unauthorized
 ```
 
@@ -332,13 +336,13 @@ La API utiliza el mismo mensaje de error para ambos casos para no revelar si un 
 
 #### Obtener usuario autenticado
 
-```http
+```http id="l4tyns"
 GET /auth/me
 ```
 
 Este endpoint está protegido y requiere enviar un access token JWT válido mediante la cabecera:
 
-```text
+```text id="8jsv6r"
 Authorization: Bearer <access_token>
 ```
 
@@ -353,7 +357,7 @@ La API:
 
 Ejemplo de respuesta:
 
-```json
+```json id="sd5r04"
 {
   "id": 1,
   "email": "user@example.com"
@@ -362,7 +366,7 @@ Ejemplo de respuesta:
 
 Si el token es inválido, ha expirado o hace referencia a un usuario que ya no existe, devuelve:
 
-```text
+```text id="3bsdee"
 401 Unauthorized
 ```
 
@@ -370,9 +374,28 @@ Si el token es inválido, ha expirado o hace referencia a un usuario que ya no e
 
 El proyecto utiliza `pytest` y una base de datos PostgreSQL separada para evitar que los tests modifiquen los datos de desarrollo.
 
+La suite está organizada por áreas de responsabilidad:
+
+```text id="e3pqt3"
+tests/
+├── conftest.py
+├── test_auth.py
+├── test_tasks.py
+└── test_users.py
+```
+
+`conftest.py` contiene las fixtures compartidas de pytest, incluyendo el cliente de FastAPI y la limpieza automática de la base de datos de test antes de cada prueba.
+
+Los tests se distribuyen de la siguiente forma:
+
+- `test_tasks.py`: CRUD y validaciones de tareas
+- `test_users.py`: registro y validaciones de usuarios
+- `test_auth.py`: login, generación de JWT y autenticación
+- `conftest.py`: configuración y fixtures compartidas
+
 Ejecutar todos los tests:
 
-```bash
+```bash id="9m4u8z"
 python -m pytest
 ```
 
@@ -405,13 +428,13 @@ El proyecto utiliza Ruff para analizar el código y detectar problemas de estilo
 
 Ejecutar Ruff:
 
-```bash
+```bash id="m34rjy"
 ruff check .
 ```
 
 Antes de realizar commits importantes se recomienda ejecutar:
 
-```bash
+```bash id="r0xnm6"
 ruff check .
 python -m pytest
 ```
@@ -433,7 +456,7 @@ Esto permite comprobar que una base de datos PostgreSQL vacía puede construirse
 
 La configuración se encuentra en:
 
-```text
+```text id="dr9q3p"
 .github/workflows/ci.yml
 ```
 
@@ -445,7 +468,7 @@ La configuración se encuentra en:
 - Paginación y filtros en tareas
 - Healthcheck y manejo de errores
 - Cobertura de tests con `pytest-cov`
-- Refactor de estructura de tests y módulos
+- Refactor de módulos internos cuando el crecimiento del proyecto lo justifique
 - Docker y Docker Compose
 - CI completo con cobertura y validaciones adicionales
 - Deploy en Azure
@@ -480,6 +503,9 @@ Actualmente están implementados:
 - migraciones y versionado de base de datos con Alembic
 - migración inicial reproducible desde una base de datos vacía
 - base de datos de test separada
+- suite de tests separada por tareas, usuarios y autenticación
+- fixtures compartidas mediante `conftest.py`
+- limpieza automática de la base de datos entre tests
 - 18 tests automáticos
 - análisis de código con Ruff
 - CI con GitHub Actions, PostgreSQL y migraciones
