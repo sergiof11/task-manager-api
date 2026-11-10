@@ -1,4 +1,5 @@
 import os
+from datetime import UTC, datetime, timedelta
 
 os.environ["DB_NAME"] = "gestor_tareas_test"
 
@@ -307,3 +308,73 @@ def test_login_user_not_found():
 
     assert response.status_code == 401
     assert response.json()["detail"] == "Email o contraseña incorrectos"
+
+
+def test_get_current_user():
+    clear_users()
+
+    client.post(
+        "/users/register",
+        json={
+            "email": "me@example.com",
+            "password": "Password123",
+        },
+    )
+
+    login_response = client.post(
+        "/auth/login",
+        json={
+            "email": "me@example.com",
+            "password": "Password123",
+        },
+    )
+
+    access_token = login_response.json()["access_token"]
+
+    response = client.get(
+        "/auth/me",
+        headers={
+            "Authorization": f"Bearer {access_token}",
+        },
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["email"] == "me@example.com"
+    assert "password" not in data
+    assert "hashed_password" not in data
+
+
+def test_get_current_user_with_invalid_token():
+    response = client.get(
+        "/auth/me",
+        headers={
+            "Authorization": "Bearer invalid-token",
+        },
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Token inválido o expirado"
+
+
+def test_get_current_user_with_expired_token():
+    expired_token = jwt.encode(
+        {
+            "sub": "1",
+            "exp": datetime.now(UTC) - timedelta(minutes=1),
+        },
+        settings.jwt_secret_key,
+        algorithm=settings.jwt_algorithm,
+    )
+
+    response = client.get(
+        "/auth/me",
+        headers={
+            "Authorization": f"Bearer {expired_token}",
+        },
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Token inválido o expirado"

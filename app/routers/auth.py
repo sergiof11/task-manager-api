@@ -3,7 +3,9 @@ from sqlalchemy.orm import Session
 
 from app.crud import find_user_by_email
 from app.database import get_db
-from app.schemas import Token, UserLogin
+from app.dependencies import get_current_user
+from app.models import UserDB
+from app.schemas import Token, User, UserLogin
 from app.security import create_access_token, verify_password
 
 router = APIRouter(
@@ -34,3 +36,10 @@ def login(
         "access_token": access_token,
         "token_type": "bearer",
     }
+
+
+@router.get("/me", response_model=User)
+def get_me(
+    current_user: UserDB = Depends(get_current_user),
+):
+    return current_user

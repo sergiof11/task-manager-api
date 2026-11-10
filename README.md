@@ -31,7 +31,10 @@ API REST para gestionar tareas y usuarios, desarrollada con FastAPI y PostgreSQL
 - Registro de usuarios
 - Login de usuarios
 - Generación de access tokens JWT
+- Validación de access tokens JWT
 - Tokens JWT con identificación de usuario y expiración
+- Obtención del usuario autenticado mediante JWT
+- Endpoint protegido `GET /auth/me`
 - Validación de emails
 - Protección frente a emails duplicados
 - Verificación segura de contraseñas
@@ -41,7 +44,7 @@ API REST para gestionar tareas y usuarios, desarrollada con FastAPI y PostgreSQL
 - Configuración centralizada con `pydantic-settings`
 - Organización de endpoints mediante routers
 - Base de datos PostgreSQL separada para tests
-- Tests automáticos del CRUD, registro, login y generación de JWT
+- Tests automáticos del CRUD, registro, login y autenticación JWT
 - Análisis estático y linting con Ruff
 - Integración continua con GitHub Actions
 
@@ -63,6 +66,7 @@ task-manager-api/
 │   ├── config.py
 │   ├── crud.py
 │   ├── database.py
+│   ├── dependencies.py
 │   ├── models.py
 │   ├── schemas.py
 │   ├── security.py
@@ -326,7 +330,41 @@ Si el email no existe o la contraseña es incorrecta, devuelve:
 
 La API utiliza el mismo mensaje de error para ambos casos para no revelar si un email concreto está registrado.
 
-La validación de los tokens y la protección de endpoints se implementarán en la siguiente fase.
+#### Obtener usuario autenticado
+
+```http
+GET /auth/me
+```
+
+Este endpoint está protegido y requiere enviar un access token JWT válido mediante la cabecera:
+
+```text
+Authorization: Bearer <access_token>
+```
+
+La API:
+
+- extrae el token Bearer
+- valida la firma del JWT
+- comprueba automáticamente su expiración
+- obtiene el ID del usuario desde el claim `sub`
+- busca el usuario en PostgreSQL
+- devuelve únicamente sus datos públicos
+
+Ejemplo de respuesta:
+
+```json
+{
+  "id": 1,
+  "email": "user@example.com"
+}
+```
+
+Si el token es inválido, ha expirado o hace referencia a un usuario que ya no existe, devuelve:
+
+```text
+401 Unauthorized
+```
 
 ## Tests
 
@@ -338,7 +376,7 @@ Ejecutar todos los tests:
 python -m pytest
 ```
 
-Actualmente el proyecto cuenta con 15 tests que comprueban:
+Actualmente el proyecto cuenta con 18 tests que comprueban:
 
 - listado de tareas
 - obtención de una tarea existente por ID
@@ -355,8 +393,11 @@ Actualmente el proyecto cuenta con 15 tests que comprueban:
 - login con credenciales correctas y generación de JWT válido
 - rechazo de login con contraseña incorrecta (`401`)
 - rechazo de login con usuario inexistente (`401`)
+- obtención del usuario autenticado con un JWT válido
+- rechazo de un JWT inválido (`401`)
+- rechazo de un JWT expirado (`401`)
 
-El test de login correcto también decodifica el JWT generado para comprobar que la firma es válida y que contiene los campos `sub` y `exp`.
+Los tests de autenticación comprueban también que el JWT generado tiene una firma válida, contiene los claims `sub` y `exp` y permite recuperar correctamente al usuario autenticado.
 
 ## Calidad de código
 
@@ -398,9 +439,7 @@ La configuración se encuentra en:
 
 ## Próximas mejoras
 
-- Validación de tokens JWT
-- Obtención del usuario autenticado mediante el token
-- Protección de endpoints
+- Protección de los endpoints de tareas mediante JWT
 - Relación entre usuarios y tareas
 - Autorización para aislar las tareas de cada usuario
 - Paginación y filtros en tareas
@@ -428,8 +467,12 @@ Actualmente están implementados:
 - hashing de contraseñas con Argon2
 - verificación segura de contraseñas
 - generación de access tokens JWT
+- validación de access tokens JWT
 - identificación del usuario mediante el claim `sub`
 - expiración de tokens mediante el claim `exp`
+- obtención del usuario autenticado mediante JWT
+- endpoint protegido `GET /auth/me`
+- dependencias de autenticación separadas en `app/dependencies.py`
 - configuración centralizada con `pydantic-settings`
 - configuración JWT mediante variables de entorno
 - validación de datos
@@ -437,8 +480,8 @@ Actualmente están implementados:
 - migraciones y versionado de base de datos con Alembic
 - migración inicial reproducible desde una base de datos vacía
 - base de datos de test separada
-- 15 tests automáticos
+- 18 tests automáticos
 - análisis de código con Ruff
 - CI con GitHub Actions, PostgreSQL y migraciones
 
-La siguiente fase estará centrada en validar los access tokens JWT, obtener el usuario autenticado y preparar la protección de endpoints.
+La siguiente fase estará centrada en proteger los endpoints de tareas mediante autenticación JWT y preparar la relación entre tareas y usuarios.
