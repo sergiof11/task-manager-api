@@ -9,11 +9,13 @@ from app.crud import (
     update_task_db,
 )
 from app.database import get_db
+from app.dependencies import get_current_user
 from app.schemas import Task, TaskCreate, TaskDeleteResponse, TaskUpdate
 
 router = APIRouter(
     prefix="/tasks",
     tags=["Tasks"],
+    dependencies=[Depends(get_current_user)],
 )
 
 

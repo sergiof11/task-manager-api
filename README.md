@@ -35,6 +35,9 @@ API REST para gestionar tareas y usuarios, desarrollada con FastAPI y PostgreSQL
 - Tokens JWT con identificación de usuario y expiración
 - Obtención del usuario autenticado mediante JWT
 - Endpoint protegido `GET /auth/me`
+- Protección mediante JWT de todos los endpoints `/tasks`
+- Respuestas `401 Unauthorized` para peticiones sin token o con token inválido
+- Cabecera `WWW-Authenticate: Bearer` en errores de autenticación
 - Validación de emails
 - Protección frente a emails duplicados
 - Verificación segura de contraseñas
@@ -51,7 +54,7 @@ API REST para gestionar tareas y usuarios, desarrollada con FastAPI y PostgreSQL
 
 ## Estructura del proyecto
 
-```text id="npu41w"
+```text
 task-manager-api/
 ├── .github/
 │   └── workflows/
@@ -94,14 +97,14 @@ Los archivos y carpetas locales como `.env`, `venv/`, `__pycache__/`, `.pytest_c
 
 ### 1. Clonar el repositorio
 
-```bash id="7d50vv"
+```bash
 git clone https://github.com/sergiof11/task-manager-api.git
 cd task-manager-api
 ```
 
 ### 2. Crear un entorno virtual
 
-```bash id="1ckq1f"
+```bash
 python -m venv venv
 ```
 
@@ -109,19 +112,19 @@ python -m venv venv
 
 #### Windows PowerShell
 
-```powershell id="b36ydg"
+```powershell
 .\venv\Scripts\Activate
 ```
 
 #### Linux / macOS
 
-```bash id="o5rqz5"
+```bash
 source venv/bin/activate
 ```
 
 ### 4. Instalar las dependencias
 
-```bash id="c1ji2c"
+```bash
 pip install -r requirements.txt
 ```
 
@@ -131,7 +134,7 @@ Crear un archivo `.env` a partir de `.env.example`.
 
 Ejemplo:
 
-```env id="e8qk04"
+```env
 DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=gestor_tareas
@@ -145,13 +148,13 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 
 También es necesario tener PostgreSQL instalado y crear una base de datos llamada:
 
-```text id="h09a8z"
+```text
 gestor_tareas
 ```
 
 Para los tests se utiliza una base de datos PostgreSQL separada:
 
-```text id="i7hmdy"
+```text
 gestor_tareas_test
 ```
 
@@ -163,25 +166,25 @@ El proyecto utiliza Alembic para gestionar y versionar los cambios del esquema d
 
 Aplicar todas las migraciones pendientes:
 
-```bash id="thnirn"
+```bash
 alembic upgrade head
 ```
 
 Comprobar la versión actual de la base de datos:
 
-```bash id="uyikxh"
+```bash
 alembic current
 ```
 
 Crear una nueva migración detectando cambios en los modelos SQLAlchemy:
 
-```bash id="teqi6n"
+```bash
 alembic revision --autogenerate -m "descripcion de la migracion"
 ```
 
 Deshacer la última migración:
 
-```bash id="6hq4z8"
+```bash
 alembic downgrade -1
 ```
 
@@ -191,25 +194,25 @@ La aplicación ya no utiliza `Base.metadata.create_all()` para crear o evolucion
 
 Antes de iniciar la aplicación, asegúrate de que las migraciones están aplicadas:
 
-```bash id="kr6crb"
+```bash
 alembic upgrade head
 ```
 
 Después, con el entorno virtual activado:
 
-```bash id="ws7z94"
+```bash
 python -m uvicorn app.main:app --reload
 ```
 
 La API estará disponible en:
 
-```text id="37dg7t"
+```text
 http://127.0.0.1:8000
 ```
 
 La documentación interactiva de FastAPI estará disponible en:
 
-```text id="9ggdvf"
+```text
 http://127.0.0.1:8000/docs
 ```
 
@@ -217,27 +220,47 @@ http://127.0.0.1:8000/docs
 
 ### Tasks
 
+Todos los endpoints de tareas están protegidos mediante autenticación JWT.
+
+Es necesario enviar un access token válido mediante la cabecera:
+
+```text
+Authorization: Bearer <access_token>
+```
+
+Si no se proporciona un token válido, la API devuelve:
+
+```text
+401 Unauthorized
+```
+
+junto con:
+
+```text
+WWW-Authenticate: Bearer
+```
+
 #### Obtener todas las tareas
 
-```http id="i13i77"
+```http
 GET /tasks
 ```
 
 #### Obtener una tarea
 
-```http id="lgcxuq"
+```http
 GET /tasks/{task_id}
 ```
 
 #### Crear una tarea
 
-```http id="s9528z"
+```http
 POST /tasks
 ```
 
 Ejemplo:
 
-```json id="jsl4o5"
+```json
 {
   "title": "Estudiar FastAPI"
 }
@@ -247,13 +270,13 @@ El campo `completed` es opcional al crear una tarea y por defecto es `false`.
 
 #### Actualizar una tarea
 
-```http id="7552lg"
+```http
 PUT /tasks/{task_id}
 ```
 
 Ejemplo:
 
-```json id="1gblnp"
+```json
 {
   "title": "Estudiar FastAPI y PostgreSQL",
   "completed": true
@@ -262,7 +285,7 @@ Ejemplo:
 
 #### Eliminar una tarea
 
-```http id="8tqgij"
+```http
 DELETE /tasks/{task_id}
 ```
 
@@ -270,13 +293,13 @@ DELETE /tasks/{task_id}
 
 #### Registrar un usuario
 
-```http id="1n102j"
+```http
 POST /users/register
 ```
 
 Ejemplo:
 
-```json id="l2xw7k"
+```json
 {
   "email": "user@example.com",
   "password": "Password123"
@@ -291,13 +314,13 @@ El email debe tener un formato válido y no puede estar registrado previamente.
 
 #### Login de usuario
 
-```http id="c9869y"
+```http
 POST /auth/login
 ```
 
 Ejemplo:
 
-```json id="hszpt7"
+```json
 {
   "email": "user@example.com",
   "password": "Password123"
@@ -308,7 +331,7 @@ El endpoint comprueba que el usuario existe y que la contraseña coincide con el
 
 Si las credenciales son correctas, genera y devuelve un access token JWT:
 
-```json id="3k4394"
+```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIs...",
   "token_type": "bearer"
@@ -322,13 +345,13 @@ El token contiene:
 
 La duración del token se configura mediante:
 
-```text id="wa3yrp"
+```text
 ACCESS_TOKEN_EXPIRE_MINUTES
 ```
 
 Si el email no existe o la contraseña es incorrecta, devuelve:
 
-```text id="cf3ad0"
+```text
 401 Unauthorized
 ```
 
@@ -336,13 +359,13 @@ La API utiliza el mismo mensaje de error para ambos casos para no revelar si un 
 
 #### Obtener usuario autenticado
 
-```http id="l4tyns"
+```http
 GET /auth/me
 ```
 
 Este endpoint está protegido y requiere enviar un access token JWT válido mediante la cabecera:
 
-```text id="8jsv6r"
+```text
 Authorization: Bearer <access_token>
 ```
 
@@ -357,7 +380,7 @@ La API:
 
 Ejemplo de respuesta:
 
-```json id="sd5r04"
+```json
 {
   "id": 1,
   "email": "user@example.com"
@@ -366,7 +389,7 @@ Ejemplo de respuesta:
 
 Si el token es inválido, ha expirado o hace referencia a un usuario que ya no existe, devuelve:
 
-```text id="3bsdee"
+```text
 401 Unauthorized
 ```
 
@@ -376,7 +399,7 @@ El proyecto utiliza `pytest` y una base de datos PostgreSQL separada para evitar
 
 La suite está organizada por áreas de responsabilidad:
 
-```text id="e3pqt3"
+```text
 tests/
 ├── conftest.py
 ├── test_auth.py
@@ -384,24 +407,32 @@ tests/
 └── test_users.py
 ```
 
-`conftest.py` contiene las fixtures compartidas de pytest, incluyendo el cliente de FastAPI y la limpieza automática de la base de datos de test antes de cada prueba.
+`conftest.py` contiene las fixtures compartidas de pytest, incluyendo:
+
+- cliente de FastAPI
+- limpieza automática de la base de datos antes de cada test
+- creación de un usuario autenticado
+- generación automática de cabeceras `Authorization` mediante `auth_headers`
 
 Los tests se distribuyen de la siguiente forma:
 
-- `test_tasks.py`: CRUD y validaciones de tareas
+- `test_tasks.py`: CRUD, validaciones y autenticación de tareas
 - `test_users.py`: registro y validaciones de usuarios
 - `test_auth.py`: login, generación de JWT y autenticación
 - `conftest.py`: configuración y fixtures compartidas
 
 Ejecutar todos los tests:
 
-```bash id="9m4u8z"
+```bash
 python -m pytest
 ```
 
-Actualmente el proyecto cuenta con 18 tests que comprueban:
+Actualmente el proyecto cuenta con 20 tests que comprueban:
 
-- listado de tareas
+- listado de tareas con usuario autenticado
+- rechazo del acceso a tareas sin token (`401`)
+- rechazo del acceso a tareas con token inválido (`401`)
+- cabecera `WWW-Authenticate: Bearer`
 - obtención de una tarea existente por ID
 - obtención de una tarea inexistente (`404`)
 - creación de tareas
@@ -417,8 +448,7 @@ Actualmente el proyecto cuenta con 18 tests que comprueban:
 - rechazo de login con contraseña incorrecta (`401`)
 - rechazo de login con usuario inexistente (`401`)
 - obtención del usuario autenticado con un JWT válido
-- rechazo de un JWT inválido (`401`)
-- rechazo de un JWT expirado (`401`)
+- rechazo de tokens inválidos o expirados (`401`)
 
 Los tests de autenticación comprueban también que el JWT generado tiene una firma válida, contiene los claims `sub` y `exp` y permite recuperar correctamente al usuario autenticado.
 
@@ -428,13 +458,13 @@ El proyecto utiliza Ruff para analizar el código y detectar problemas de estilo
 
 Ejecutar Ruff:
 
-```bash id="m34rjy"
+```bash
 ruff check .
 ```
 
 Antes de realizar commits importantes se recomienda ejecutar:
 
-```bash id="r0xnm6"
+```bash
 ruff check .
 python -m pytest
 ```
@@ -456,14 +486,14 @@ Esto permite comprobar que una base de datos PostgreSQL vacía puede construirse
 
 La configuración se encuentra en:
 
-```text id="dr9q3p"
+```text
 .github/workflows/ci.yml
 ```
 
 ## Próximas mejoras
 
-- Protección de los endpoints de tareas mediante JWT
-- Relación entre usuarios y tareas
+- Relación entre usuarios y tareas mediante `user_id`
+- Migración Alembic para la nueva relación
 - Autorización para aislar las tareas de cada usuario
 - Paginación y filtros en tareas
 - Healthcheck y manejo de errores
@@ -495,6 +525,9 @@ Actualmente están implementados:
 - expiración de tokens mediante el claim `exp`
 - obtención del usuario autenticado mediante JWT
 - endpoint protegido `GET /auth/me`
+- protección JWT de todos los endpoints `/tasks`
+- respuestas `401` para peticiones no autenticadas
+- cabecera `WWW-Authenticate: Bearer`
 - dependencias de autenticación separadas en `app/dependencies.py`
 - configuración centralizada con `pydantic-settings`
 - configuración JWT mediante variables de entorno
@@ -505,9 +538,10 @@ Actualmente están implementados:
 - base de datos de test separada
 - suite de tests separada por tareas, usuarios y autenticación
 - fixtures compartidas mediante `conftest.py`
+- fixture `auth_headers` para tests autenticados
 - limpieza automática de la base de datos entre tests
-- 18 tests automáticos
+- 20 tests automáticos
 - análisis de código con Ruff
 - CI con GitHub Actions, PostgreSQL y migraciones
 
-La siguiente fase estará centrada en proteger los endpoints de tareas mediante autenticación JWT y preparar la relación entre tareas y usuarios.
+La siguiente fase estará centrada en relacionar cada tarea con su usuario mediante `user_id` y Alembic, preparando el aislamiento de tareas entre usuarios.
