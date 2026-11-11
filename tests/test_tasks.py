@@ -416,3 +416,51 @@ def test_get_tasks_invalid_limit(client, auth_headers):
     )
 
     assert response.status_code == 422
+
+
+def test_get_task_with_invalid_id(client, auth_headers):
+    response = client.get(
+        "/tasks/0",
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 422
+
+
+def test_get_tasks_with_negative_skip(client, auth_headers):
+    response = client.get(
+        "/tasks?skip=-1",
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 422
+
+
+def test_get_tasks_with_limit_over_maximum(client, auth_headers):
+    response = client.get(
+        "/tasks?limit=101",
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 422
+
+
+def test_get_tasks_with_invalid_completed_filter(client, auth_headers):
+    response = client.get(
+        "/tasks?completed=invalid",
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 422
+
+
+def test_create_task_with_title_too_long(client, auth_headers):
+    response = client.post(
+        "/tasks",
+        json={
+            "title": "a" * 201,
+        },
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 422

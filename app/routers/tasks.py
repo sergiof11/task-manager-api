@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy.orm import Session
 
 from app.crud import (
@@ -38,7 +40,7 @@ def get_tasks(
 
 @router.get("/{task_id}", response_model=Task)
 def get_task(
-    task_id: int,
+    task_id: Annotated[int, Path(gt=0)],
     db: Session = Depends(get_db),
     current_user: UserDB = Depends(get_current_user),
 ):
@@ -73,7 +75,7 @@ def create_task(
 
 @router.put("/{task_id}", response_model=Task)
 def update_task(
-    task_id: int,
+    task_id: Annotated[int, Path(gt=0)],
     task: TaskUpdate,
     db: Session = Depends(get_db),
     current_user: UserDB = Depends(get_current_user),
@@ -97,7 +99,7 @@ def update_task(
 
 @router.delete("/{task_id}", response_model=TaskDeleteResponse)
 def delete_task(
-    task_id: int,
+    task_id: Annotated[int, Path(gt=0)],
     db: Session = Depends(get_db),
     current_user: UserDB = Depends(get_current_user),
 ):

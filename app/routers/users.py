@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.crud import create_user_db, find_user_by_email
@@ -20,12 +21,20 @@ def register_user(
 
     if existing_user is not None:
         raise HTTPException(
-            status_code=400,
+            status_code=409,
             detail="El email ya está registrado",
         )
 
-    return create_user_db(
-        db,
-        user.email,
-        user.password,
-    )
+    try:
+        return create_user_db(
+            db,
+            user.email,
+            user.password,
+        )
+    except IntegrityError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=409,
+            detail="El email ya está registrado",
+        )

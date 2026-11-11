@@ -28,6 +28,7 @@ def login(
         raise HTTPException(
             status_code=401,
             detail="Email o contraseña incorrectos",
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
     access_token = create_access_token(user.id)

@@ -27,7 +27,7 @@ def test_register_duplicate_email(client):
 
     response = client.post("/users/register", json=user_data)
 
-    assert response.status_code == 400
+    assert response.status_code == 409
     assert response.json()["detail"] == "El email ya está registrado"
 
 
@@ -38,6 +38,18 @@ def test_register_invalid_email(client):
             "email": "email-invalido",
             "password": "Password123"
         }
+    )
+
+    assert response.status_code == 422
+
+
+def test_register_user_with_short_password(client):
+    response = client.post(
+        "/users/register",
+        json={
+            "email": "test@example.com",
+            "password": "short",
+        },
     )
 
     assert response.status_code == 422

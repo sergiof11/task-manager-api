@@ -50,14 +50,21 @@ API REST para gestionar tareas y usuarios, desarrollada con FastAPI y PostgreSQL
 - Límite máximo de 100 tareas por petición
 - Filtro de tareas por estado `completed`
 - Validación automática de parámetros de paginación
+- Validación de IDs de tareas positivos
 - Endpoint público `GET /health`
-- Respuestas `401 Unauthorized` para peticiones sin token o con token inválido
-- Cabecera `WWW-Authenticate: Bearer` en errores de autenticación
+- Respuestas `401 Unauthorized` para errores de autenticación
+- Cabecera `WWW-Authenticate: Bearer` en respuestas `401`
+- Mismo mensaje de error para email inexistente y contraseña incorrecta durante el login
 - Validación de emails
 - Protección frente a emails duplicados
+- Respuesta `409 Conflict` al intentar registrar un email existente
+- Protección adicional frente a duplicados mediante la restricción `UNIQUE` de PostgreSQL
+- Recuperación de la sesión mediante `rollback()` ante conflictos de integridad
+- Validación de longitud de contraseñas
 - Verificación segura de contraseñas
 - Hash seguro de contraseñas con Argon2
 - Acceso a PostgreSQL mediante SQLAlchemy
+- Consultas parametrizadas mediante SQLAlchemy
 - Migraciones y versionado del esquema con Alembic
 - Configuración centralizada con `pydantic-settings`
 - Organización de endpoints mediante routers
@@ -65,7 +72,7 @@ API REST para gestionar tareas y usuarios, desarrollada con FastAPI y PostgreSQL
 - Suite de tests organizada por tareas, usuarios, autenticación y healthcheck
 - Fixtures compartidas con pytest
 - Tests de aislamiento utilizando múltiples usuarios
-- Tests de paginación y filtros
+- Tests de paginación, filtros y casos límite
 - Análisis estático y linting con Ruff
 - Integración continua con GitHub Actions
 
@@ -291,6 +298,12 @@ Si intenta acceder a una tarea perteneciente a otro usuario, la API responde:
 
 La API utiliza `404` en lugar de revelar que la tarea existe pero pertenece a otro usuario.
 
+Los IDs de tareas deben ser enteros positivos. Un `task_id` igual o inferior a `0` es rechazado automáticamente con:
+
+```text
+422 Unprocessable Entity
+```
+
 #### Obtener todas las tareas
 
 ```http
@@ -331,7 +344,13 @@ GET /tasks?completed=true&skip=0&limit=10
 
 La paginación mantiene un orden estable por ID.
 
-Si los parámetros de paginación no cumplen las restricciones definidas, FastAPI devuelve automáticamente:
+FastAPI valida automáticamente los parámetros:
+
+- `skip >= 0`
+- `1 <= limit <= 100`
+- `completed` debe representar un valor booleano válido
+
+Si los parámetros no cumplen las restricciones definidas, devuelve:
 
 ```text
 422 Unprocessable Entity
@@ -360,6 +379,8 @@ Ejemplo:
 ```
 
 El campo `completed` es opcional al crear una tarea y por defecto es `false`.
+
+El título debe tener entre `1` y `200` caracteres y no puede estar formado únicamente por espacios.
 
 El propietario de la tarea se obtiene automáticamente del usuario autenticado y no debe enviarse en el cuerpo de la petición.
 
@@ -407,7 +428,27 @@ Ejemplo:
 
 Las contraseñas no se almacenan en texto plano. Se transforman mediante Argon2 antes de guardarse en PostgreSQL.
 
+La contraseña debe tener entre `8` y `128` caracteres.
+
 El email debe tener un formato válido y no puede estar registrado previamente.
+
+Si se intenta registrar un email existente, la API devuelve:
+
+```text
+409 Conflict
+```
+
+con el mensaje:
+
+```json
+{
+  "detail": "El email ya está registrado"
+}
+```
+
+La aplicación realiza una comprobación previa del email y PostgreSQL mantiene además una restricción `UNIQUE` como protección definitiva frente a duplicados.
+
+Si durante la inserción se produce un conflicto de integridad, la sesión de SQLAlchemy realiza `rollback()` y la API responde igualmente con `409 Conflict`.
 
 ### Auth
 
@@ -427,6 +468,8 @@ Ejemplo:
 ```
 
 El endpoint comprueba que el usuario existe y que la contraseña coincide con el hash almacenado.
+
+Las contraseñas enviadas al login tienen un límite máximo de `128` caracteres.
 
 Si las credenciales son correctas, genera y devuelve un access token JWT:
 
@@ -454,7 +497,21 @@ Si el email no existe o la contraseña es incorrecta, devuelve:
 401 Unauthorized
 ```
 
-La API utiliza el mismo mensaje de error para ambos casos para no revelar si un email concreto está registrado.
+junto con:
+
+```text
+WWW-Authenticate: Bearer
+```
+
+La API utiliza el mismo mensaje de error para ambos casos:
+
+```json
+{
+  "detail": "Email o contraseña incorrectos"
+}
+```
+
+Esto evita revelar directamente durante el login si un email concreto está registrado.
 
 #### Obtener usuario autenticado
 
@@ -491,6 +548,14 @@ Si el token es inválido, ha expirado o hace referencia a un usuario que ya no e
 ```text
 401 Unauthorized
 ```
+
+junto con:
+
+```text
+WWW-Authenticate: Bearer
+```
+
+Un token criptográficamente válido no es suficiente si el usuario indicado por `sub` ya no existe en la base de datos.
 
 ### Health
 
@@ -537,9 +602,9 @@ tests/
 
 Los tests se distribuyen de la siguiente forma:
 
-- `test_tasks.py`: CRUD, validaciones, autenticación, propiedad, aislamiento, paginación y filtros de tareas
-- `test_users.py`: registro y validaciones de usuarios
-- `test_auth.py`: login, generación de JWT y autenticación
+- `test_tasks.py`: CRUD, validaciones, autenticación, propiedad, aislamiento, paginación, filtros y casos límite de tareas
+- `test_users.py`: registro, duplicados y validaciones de usuarios
+- `test_auth.py`: login, generación de JWT, autenticación y casos límite de tokens
 - `test_health.py`: comprobación del endpoint de estado de la API
 - `conftest.py`: configuración y fixtures compartidas
 
@@ -549,7 +614,7 @@ Ejecutar todos los tests:
 python -m pytest
 ```
 
-Actualmente el proyecto cuenta con 30 tests que comprueban:
+Actualmente el proyecto cuenta con **38 tests** que comprueban:
 
 - listado de tareas con usuario autenticado
 - rechazo del acceso a tareas sin token (`401`)
@@ -557,36 +622,46 @@ Actualmente el proyecto cuenta con 30 tests que comprueban:
 - cabecera `WWW-Authenticate: Bearer`
 - obtención de una tarea existente por ID
 - obtención de una tarea inexistente (`404`)
+- rechazo de IDs de tarea no válidos (`422`)
 - creación de tareas
 - actualización de tareas
 - actualización de una tarea inexistente (`404`)
 - eliminación de tareas
 - eliminación de una tarea inexistente (`404`)
 - validación de títulos formados solo por espacios
+- validación de títulos superiores a 200 caracteres
 - registro de usuarios
-- rechazo de emails duplicados
+- rechazo de emails duplicados mediante `409 Conflict`
 - validación de emails incorrectos
+- validación de contraseñas demasiado cortas durante el registro
 - login con credenciales correctas y generación de JWT válido
 - rechazo de login con contraseña incorrecta (`401`)
 - rechazo de login con usuario inexistente (`401`)
+- mismo comportamiento de autenticación para email inexistente y contraseña incorrecta
+- cabecera `WWW-Authenticate: Bearer` en errores de login
+- rechazo de contraseñas superiores a 128 caracteres durante el login
 - obtención del usuario autenticado con un JWT válido
-- rechazo de tokens inválidos o expirados (`401`)
+- rechazo de tokens inválidos (`401`)
+- rechazo de tokens expirados (`401`)
+- rechazo de JWT válido asociado a un usuario inexistente (`401`)
 - comprobación de que una tarea creada pertenece al usuario autenticado
 - listado aislado de tareas entre dos usuarios
 - rechazo del acceso a una tarea de otro usuario (`404`)
 - rechazo de la modificación de una tarea de otro usuario (`404`)
 - rechazo de la eliminación de una tarea de otro usuario (`404`)
 - paginación mediante `skip` y `limit`
+- rechazo de valores negativos de `skip`
+- rechazo de límites superiores al máximo permitido
 - filtrado de tareas completadas
 - filtrado de tareas pendientes
-- validación de límites de paginación (`422`)
+- rechazo de valores inválidos en el filtro `completed`
 - funcionamiento del endpoint `GET /health`
 
 Los tests de aislamiento crean usuarios independientes y comprueban que cada uno únicamente puede operar sobre sus propias tareas.
 
 El test de propiedad comprueba directamente en PostgreSQL que el `user_id` almacenado en la tarea coincide con el ID contenido en el claim `sub` del JWT del usuario autenticado.
 
-Los tests de autenticación comprueban también que el JWT generado tiene una firma válida, contiene los claims `sub` y `exp` y permite recuperar correctamente al usuario autenticado.
+Los tests de autenticación comprueban también que el JWT generado tiene una firma válida, contiene los claims `sub` y `exp`, permite recuperar correctamente al usuario autenticado y deja de ser válido para acceder a recursos si el usuario asociado ya no existe.
 
 ## Calidad de código
 
@@ -596,6 +671,12 @@ Ejecutar Ruff:
 
 ```bash
 ruff check .
+```
+
+Aplicar automáticamente correcciones seguras detectadas por Ruff:
+
+```bash
+ruff check . --fix
 ```
 
 Antes de realizar commits importantes se recomienda ejecutar:
@@ -628,14 +709,12 @@ La configuración se encuentra en:
 
 ## Próximas mejoras
 
-- Revisión y mejora del manejo de errores
 - Cobertura de tests con `pytest-cov`
 - Revisión final y reorganización de la suite de tests
-- Revisión de casos límite
 - Docker y Docker Compose
 - CI completo con cobertura y validaciones adicionales
 - Deploy en Azure
-- Revisión de secretos y configuración
+- Revisión de secretos y configuración para producción
 - README final para portfolio
 - Revisión completa y cierre del proyecto
 
@@ -657,8 +736,11 @@ Actualmente están implementados:
 - identificación del usuario mediante el claim `sub`
 - expiración de tokens mediante el claim `exp`
 - obtención del usuario autenticado mediante JWT
+- rechazo de JWT válidos asociados a usuarios inexistentes
 - endpoint protegido `GET /auth/me`
 - protección JWT de todos los endpoints `/tasks`
+- cabecera `WWW-Authenticate: Bearer` en errores de autenticación
+- mismo mensaje de error ante email inexistente o contraseña incorrecta en login
 - relación entre tareas y usuarios mediante `user_id`
 - foreign key `tasks.user_id → users.id`
 - índice sobre `tasks.user_id`
@@ -673,14 +755,15 @@ Actualmente están implementados:
 - límite máximo de 100 tareas por petición
 - filtrado por estado `completed`
 - validación de parámetros de paginación
+- validación de IDs de tareas positivos
+- validación de longitud de títulos y contraseñas
 - endpoint público `GET /health`
+- protección frente a emails duplicados mediante comprobación previa y restricción `UNIQUE`
+- respuesta `409 Conflict` para emails duplicados
+- manejo de `IntegrityError` y `rollback()` de la sesión
 - migración Alembic `5fc071f53c9f_add_user_to_tasks.py`
-- respuestas `401` para peticiones no autenticadas
-- cabecera `WWW-Authenticate: Bearer`
-- dependencias de autenticación separadas en `app/dependencies.py`
 - configuración centralizada con `pydantic-settings`
 - configuración JWT mediante variables de entorno
-- validación de datos
 - organización de rutas mediante routers
 - migraciones y versionado de base de datos con Alembic
 - migraciones reproducibles desde una base de datos vacía
@@ -691,9 +774,9 @@ Actualmente están implementados:
 - limpieza automática de la base de datos entre tests
 - comprobación automática de la propiedad de las tareas
 - tests de aislamiento entre múltiples usuarios
-- tests de paginación y filtros
-- 30 tests automáticos
+- tests de paginación, filtros, autenticación y casos límite
+- 38 tests automáticos
 - análisis de código con Ruff
 - CI con GitHub Actions, PostgreSQL y migraciones
 
-La siguiente fase estará centrada en revisar la calidad final de la API y de su suite de tests antes de comenzar con Docker y el despliegue.
+La siguiente fase estará centrada en medir la cobertura de la suite de tests y reorganizarla para dejar la parte de testing cerrada antes de comenzar con Docker.
