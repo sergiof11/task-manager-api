@@ -16,21 +16,28 @@ from app.schemas import Task, TaskCreate, TaskDeleteResponse, TaskUpdate
 router = APIRouter(
     prefix="/tasks",
     tags=["Tasks"],
-    dependencies=[Depends(get_current_user)],
 )
 
 
 @router.get("", response_model=list[Task])
-def get_tasks(db: Session = Depends(get_db)):
-    return get_all_tasks(db)
+def get_tasks(
+    db: Session = Depends(get_db),
+    current_user: UserDB = Depends(get_current_user),
+):
+    return get_all_tasks(db, current_user.id)
 
 
 @router.get("/{task_id}", response_model=Task)
 def get_task(
     task_id: int,
     db: Session = Depends(get_db),
+    current_user: UserDB = Depends(get_current_user),
 ):
-    task = find_task_by_id(db, task_id)
+    task = find_task_by_id(
+        db,
+        task_id,
+        current_user.id,
+    )
 
     if task is None:
         raise HTTPException(
@@ -60,12 +67,14 @@ def update_task(
     task_id: int,
     task: TaskUpdate,
     db: Session = Depends(get_db),
+    current_user: UserDB = Depends(get_current_user),
 ):
     updated_task = update_task_db(
         db,
         task_id,
         task.title,
         task.completed,
+        current_user.id,
     )
 
     if updated_task is None:
@@ -81,8 +90,13 @@ def update_task(
 def delete_task(
     task_id: int,
     db: Session = Depends(get_db),
+    current_user: UserDB = Depends(get_current_user),
 ):
-    deleted_task = delete_task_db(db, task_id)
+    deleted_task = delete_task_db(
+        db,
+        task_id,
+        current_user.id,
+    )
 
     if deleted_task is None:
         raise HTTPException(

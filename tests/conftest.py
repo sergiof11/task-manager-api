@@ -50,3 +50,28 @@ def clean_database():
         db.commit()
     finally:
         db.close()
+
+
+@pytest.fixture
+def second_auth_headers(client):
+    client.post(
+        "/users/register",
+        json={
+            "email": "second@example.com",
+            "password": "Password123",
+        },
+    )
+
+    login_response = client.post(
+        "/auth/login",
+        json={
+            "email": "second@example.com",
+            "password": "Password123",
+        },
+    )
+
+    access_token = login_response.json()["access_token"]
+
+    return {
+        "Authorization": f"Bearer {access_token}",
+    }

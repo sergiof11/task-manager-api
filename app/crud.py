@@ -4,12 +4,19 @@ from app.models import TaskDB, UserDB
 from app.security import hash_password
 
 
-def get_all_tasks(db: Session):
-    return db.query(TaskDB).all()
+def get_all_tasks(db: Session, user_id: int):
+    return db.query(TaskDB).filter(TaskDB.user_id == user_id).all()
 
 
-def find_task_by_id(db: Session, task_id: int):
-    return db.query(TaskDB).filter(TaskDB.id == task_id).first()
+def find_task_by_id(db: Session, task_id: int, user_id: int):
+    return (
+        db.query(TaskDB)
+        .filter(
+            TaskDB.id == task_id,
+            TaskDB.user_id == user_id,
+        )
+        .first()
+    )
 
 
 def create_task_db(
@@ -31,8 +38,14 @@ def create_task_db(
     return task
 
 
-def update_task_db(db: Session, task_id: int, title: str, completed: bool):
-    task = find_task_by_id(db, task_id)
+def update_task_db(
+    db: Session,
+    task_id: int,
+    title: str,
+    completed: bool,
+    user_id: int,
+):
+    task = find_task_by_id(db, task_id, user_id)
 
     if task is None:
         return None
@@ -46,8 +59,12 @@ def update_task_db(db: Session, task_id: int, title: str, completed: bool):
     return task
 
 
-def delete_task_db(db: Session, task_id: int):
-    task = find_task_by_id(db, task_id)
+def delete_task_db(
+    db: Session,
+    task_id: int,
+    user_id: int,
+):
+    task = find_task_by_id(db, task_id, user_id)
 
     if task is None:
         return None
@@ -61,7 +78,7 @@ def delete_task_db(db: Session, task_id: int):
 def create_user_db(db: Session, email: str, password: str):
     user = UserDB(
         email=email,
-        hashed_password=hash_password(password)
+        hashed_password=hash_password(password),
     )
 
     db.add(user)

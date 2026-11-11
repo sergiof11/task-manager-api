@@ -212,3 +212,110 @@ def test_created_task_belongs_to_authenticated_user(client, auth_headers):
         assert task.user_id == user_id
     finally:
         db.close()
+
+
+def test_users_only_list_their_own_tasks(
+    client,
+    auth_headers,
+    second_auth_headers,
+):
+    client.post(
+        "/tasks",
+        json={"title": "Tarea usuario uno"},
+        headers=auth_headers,
+    )
+
+    client.post(
+        "/tasks",
+        json={"title": "Tarea usuario dos"},
+        headers=second_auth_headers,
+    )
+
+    response_user_one = client.get(
+        "/tasks",
+        headers=auth_headers,
+    )
+
+    response_user_two = client.get(
+        "/tasks",
+        headers=second_auth_headers,
+    )
+
+    assert response_user_one.status_code == 200
+    assert response_user_two.status_code == 200
+
+    assert len(response_user_one.json()) == 1
+    assert len(response_user_two.json()) == 1
+
+    assert response_user_one.json()[0]["title"] == "Tarea usuario uno"
+    assert response_user_two.json()[0]["title"] == "Tarea usuario dos"
+
+
+def test_user_cannot_get_another_users_task(
+    client,
+    auth_headers,
+    second_auth_headers,
+):
+    create_response = client.post(
+        "/tasks",
+        json={"title": "Tarea privada"},
+        headers=auth_headers,
+    )
+
+    task_id = create_response.json()["id"]
+
+    response = client.get(
+        f"/tasks/{task_id}",
+        headers=second_auth_headers,
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Tarea no encontrada"
+
+
+def test_user_cannot_update_another_users_task(
+    client,
+    auth_headers,
+    second_auth_headers,
+):
+    create_response = client.post(
+        "/tasks",
+        json={"title": "Tarea privada"},
+        headers=auth_headers,
+    )
+
+    task_id = create_response.json()["id"]
+
+    response = client.put(
+        f"/tasks/{task_id}",
+        json={
+            "title": "Intento de modificación",
+            "completed": True,
+        },
+        headers=second_auth_headers,
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Tarea no encontrada"
+
+
+def test_user_cannot_delete_another_users_task(
+    client,
+    auth_headers,
+    second_auth_headers,
+):
+    create_response = client.post(
+        "/tasks",
+        json={"title": "Tarea privada"},
+        headers=auth_headers,
+    )
+
+    task_id = create_response.json()["id"]
+
+    response = client.delete(
+        f"/tasks/{task_id}",
+        headers=second_auth_headers,
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Tarea no encontrada"

@@ -40,6 +40,12 @@ API REST para gestionar tareas y usuarios, desarrollada con FastAPI y PostgreSQL
 - Asignación automática del usuario autenticado al crear una tarea
 - Foreign key entre `tasks.user_id` y `users.id`
 - Índice sobre `tasks.user_id`
+- Aislamiento de tareas por usuario
+- Listado exclusivo de las tareas del usuario autenticado
+- Protección frente al acceso a tareas de otros usuarios
+- Protección frente a la modificación de tareas de otros usuarios
+- Protección frente a la eliminación de tareas de otros usuarios
+- Respuesta `404 Not Found` para tareas inexistentes o pertenecientes a otro usuario
 - Respuestas `401 Unauthorized` para peticiones sin token o con token inválido
 - Cabecera `WWW-Authenticate: Bearer` en errores de autenticación
 - Validación de emails
@@ -53,6 +59,7 @@ API REST para gestionar tareas y usuarios, desarrollada con FastAPI y PostgreSQL
 - Base de datos PostgreSQL separada para tests
 - Suite de tests organizada por tareas, usuarios y autenticación
 - Fixtures compartidas con pytest
+- Tests de aislamiento utilizando múltiples usuarios
 - Análisis estático y linting con Ruff
 - Integración continua con GitHub Actions
 
@@ -265,17 +272,33 @@ El cliente no envía manualmente este valor. La API obtiene el usuario autentica
 tasks.user_id = current_user.id
 ```
 
+Además, todas las operaciones sobre tareas están filtradas por el usuario autenticado.
+
+Esto significa que un usuario únicamente puede listar, consultar, actualizar o eliminar sus propias tareas.
+
+Si intenta acceder a una tarea perteneciente a otro usuario, la API responde:
+
+```text
+404 Not Found
+```
+
+La API utiliza `404` en lugar de revelar que la tarea existe pero pertenece a otro usuario.
+
 #### Obtener todas las tareas
 
 ```http
 GET /tasks
 ```
 
+Devuelve únicamente las tareas cuyo `user_id` corresponde al usuario autenticado.
+
 #### Obtener una tarea
 
 ```http
 GET /tasks/{task_id}
 ```
+
+Solo devuelve la tarea si pertenece al usuario autenticado.
 
 #### Crear una tarea
 
@@ -310,11 +333,15 @@ Ejemplo:
 }
 ```
 
+Solo se puede actualizar una tarea perteneciente al usuario autenticado.
+
 #### Eliminar una tarea
 
 ```http
 DELETE /tasks/{task_id}
 ```
+
+Solo se puede eliminar una tarea perteneciente al usuario autenticado.
 
 ### Users
 
@@ -440,10 +467,11 @@ tests/
 - limpieza automática de la base de datos antes de cada test
 - creación de un usuario autenticado
 - generación automática de cabeceras `Authorization` mediante `auth_headers`
+- segundo usuario autenticado mediante `second_auth_headers`
 
 Los tests se distribuyen de la siguiente forma:
 
-- `test_tasks.py`: CRUD, validaciones, autenticación y propiedad de tareas
+- `test_tasks.py`: CRUD, validaciones, autenticación, propiedad y aislamiento de tareas
 - `test_users.py`: registro y validaciones de usuarios
 - `test_auth.py`: login, generación de JWT y autenticación
 - `conftest.py`: configuración y fixtures compartidas
@@ -454,7 +482,7 @@ Ejecutar todos los tests:
 python -m pytest
 ```
 
-Actualmente el proyecto cuenta con 21 tests que comprueban:
+Actualmente el proyecto cuenta con 25 tests que comprueban:
 
 - listado de tareas con usuario autenticado
 - rechazo del acceso a tareas sin token (`401`)
@@ -477,6 +505,12 @@ Actualmente el proyecto cuenta con 21 tests que comprueban:
 - obtención del usuario autenticado con un JWT válido
 - rechazo de tokens inválidos o expirados (`401`)
 - comprobación de que una tarea creada pertenece al usuario autenticado
+- listado aislado de tareas entre dos usuarios
+- rechazo del acceso a una tarea de otro usuario (`404`)
+- rechazo de la modificación de una tarea de otro usuario (`404`)
+- rechazo de la eliminación de una tarea de otro usuario (`404`)
+
+Los tests de aislamiento crean usuarios independientes y comprueban que cada uno únicamente puede operar sobre sus propias tareas.
 
 El test de propiedad comprueba directamente en PostgreSQL que el `user_id` almacenado en la tarea coincide con el ID contenido en el claim `sub` del JWT del usuario autenticado.
 
@@ -522,14 +556,12 @@ La configuración se encuentra en:
 
 ## Próximas mejoras
 
-- Autorización para aislar las tareas de cada usuario
-- Listado de únicamente las tareas del usuario autenticado
-- Protección frente al acceso, modificación o eliminación de tareas de otros usuarios
-- Tests de aislamiento utilizando múltiples usuarios
-- Paginación y filtros en tareas
-- Healthcheck y manejo de errores
+- Paginación de tareas
+- Filtro por estado `completed`
+- Healthcheck
+- Revisión y mejora del manejo de errores
 - Cobertura de tests con `pytest-cov`
-- Refactor de módulos internos cuando el crecimiento del proyecto lo justifique
+- Revisión final de tests y casos límite
 - Docker y Docker Compose
 - CI completo con cobertura y validaciones adicionales
 - Deploy en Azure
@@ -561,6 +593,12 @@ Actualmente están implementados:
 - foreign key `tasks.user_id → users.id`
 - índice sobre `tasks.user_id`
 - asignación automática del propietario de una tarea desde el JWT
+- aislamiento completo de tareas entre usuarios
+- listado de tareas filtrado por usuario autenticado
+- protección de consulta de tareas ajenas
+- protección de modificación de tareas ajenas
+- protección de eliminación de tareas ajenas
+- uso de `404` para evitar revelar recursos pertenecientes a otros usuarios
 - migración Alembic `5fc071f53c9f_add_user_to_tasks.py`
 - respuestas `401` para peticiones no autenticadas
 - cabecera `WWW-Authenticate: Bearer`
@@ -574,11 +612,12 @@ Actualmente están implementados:
 - base de datos de test separada
 - suite de tests separada por tareas, usuarios y autenticación
 - fixtures compartidas mediante `conftest.py`
-- fixture `auth_headers` para tests autenticados
+- fixtures `auth_headers` y `second_auth_headers`
 - limpieza automática de la base de datos entre tests
 - comprobación automática de la propiedad de las tareas
-- 21 tests automáticos
+- tests de aislamiento entre múltiples usuarios
+- 25 tests automáticos
 - análisis de código con Ruff
 - CI con GitHub Actions, PostgreSQL y migraciones
 
-La siguiente fase estará centrada en aplicar autorización real sobre las tareas para que cada usuario solo pueda listar, consultar, modificar y eliminar sus propias tareas.
+La siguiente fase estará centrada en completar las mejoras finales de la API, empezando por paginación, filtros y healthcheck.
