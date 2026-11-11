@@ -46,6 +46,11 @@ API REST para gestionar tareas y usuarios, desarrollada con FastAPI y PostgreSQL
 - Protección frente a la modificación de tareas de otros usuarios
 - Protección frente a la eliminación de tareas de otros usuarios
 - Respuesta `404 Not Found` para tareas inexistentes o pertenecientes a otro usuario
+- Paginación de tareas mediante `skip` y `limit`
+- Límite máximo de 100 tareas por petición
+- Filtro de tareas por estado `completed`
+- Validación automática de parámetros de paginación
+- Endpoint público `GET /health`
 - Respuestas `401 Unauthorized` para peticiones sin token o con token inválido
 - Cabecera `WWW-Authenticate: Bearer` en errores de autenticación
 - Validación de emails
@@ -57,9 +62,10 @@ API REST para gestionar tareas y usuarios, desarrollada con FastAPI y PostgreSQL
 - Configuración centralizada con `pydantic-settings`
 - Organización de endpoints mediante routers
 - Base de datos PostgreSQL separada para tests
-- Suite de tests organizada por tareas, usuarios y autenticación
+- Suite de tests organizada por tareas, usuarios, autenticación y healthcheck
 - Fixtures compartidas con pytest
 - Tests de aislamiento utilizando múltiples usuarios
+- Tests de paginación y filtros
 - Análisis estático y linting con Ruff
 - Integración continua con GitHub Actions
 
@@ -93,6 +99,7 @@ task-manager-api/
 ├── tests/
 │   ├── conftest.py
 │   ├── test_auth.py
+│   ├── test_health.py
 │   ├── test_tasks.py
 │   └── test_users.py
 ├── .env.example
@@ -292,6 +299,44 @@ GET /tasks
 
 Devuelve únicamente las tareas cuyo `user_id` corresponde al usuario autenticado.
 
+El endpoint admite paginación mediante los parámetros:
+
+- `skip`: número de tareas que se omiten. Valor por defecto: `0`
+- `limit`: número máximo de tareas devueltas. Valor por defecto: `10`
+- `limit` debe estar entre `1` y `100`
+
+Ejemplo:
+
+```http
+GET /tasks?skip=0&limit=10
+```
+
+También permite filtrar las tareas por su estado:
+
+```http
+GET /tasks?completed=true
+```
+
+o:
+
+```http
+GET /tasks?completed=false
+```
+
+Los parámetros pueden combinarse:
+
+```http
+GET /tasks?completed=true&skip=0&limit=10
+```
+
+La paginación mantiene un orden estable por ID.
+
+Si los parámetros de paginación no cumplen las restricciones definidas, FastAPI devuelve automáticamente:
+
+```text
+422 Unprocessable Entity
+```
+
 #### Obtener una tarea
 
 ```http
@@ -447,6 +492,26 @@ Si el token es inválido, ha expirado o hace referencia a un usuario que ya no e
 401 Unauthorized
 ```
 
+### Health
+
+#### Comprobar el estado de la API
+
+```http
+GET /health
+```
+
+Este endpoint es público y no requiere autenticación.
+
+Ejemplo de respuesta:
+
+```json
+{
+  "status": "ok"
+}
+```
+
+Permite comprobar rápidamente que la aplicación está disponible y puede utilizarse posteriormente en entornos de despliegue o contenedores.
+
 ## Tests
 
 El proyecto utiliza `pytest` y una base de datos PostgreSQL separada para evitar que los tests modifiquen los datos de desarrollo.
@@ -457,6 +522,7 @@ La suite está organizada por áreas de responsabilidad:
 tests/
 ├── conftest.py
 ├── test_auth.py
+├── test_health.py
 ├── test_tasks.py
 └── test_users.py
 ```
@@ -471,9 +537,10 @@ tests/
 
 Los tests se distribuyen de la siguiente forma:
 
-- `test_tasks.py`: CRUD, validaciones, autenticación, propiedad y aislamiento de tareas
+- `test_tasks.py`: CRUD, validaciones, autenticación, propiedad, aislamiento, paginación y filtros de tareas
 - `test_users.py`: registro y validaciones de usuarios
 - `test_auth.py`: login, generación de JWT y autenticación
+- `test_health.py`: comprobación del endpoint de estado de la API
 - `conftest.py`: configuración y fixtures compartidas
 
 Ejecutar todos los tests:
@@ -482,7 +549,7 @@ Ejecutar todos los tests:
 python -m pytest
 ```
 
-Actualmente el proyecto cuenta con 25 tests que comprueban:
+Actualmente el proyecto cuenta con 30 tests que comprueban:
 
 - listado de tareas con usuario autenticado
 - rechazo del acceso a tareas sin token (`401`)
@@ -509,6 +576,11 @@ Actualmente el proyecto cuenta con 25 tests que comprueban:
 - rechazo del acceso a una tarea de otro usuario (`404`)
 - rechazo de la modificación de una tarea de otro usuario (`404`)
 - rechazo de la eliminación de una tarea de otro usuario (`404`)
+- paginación mediante `skip` y `limit`
+- filtrado de tareas completadas
+- filtrado de tareas pendientes
+- validación de límites de paginación (`422`)
+- funcionamiento del endpoint `GET /health`
 
 Los tests de aislamiento crean usuarios independientes y comprueban que cada uno únicamente puede operar sobre sus propias tareas.
 
@@ -556,12 +628,10 @@ La configuración se encuentra en:
 
 ## Próximas mejoras
 
-- Paginación de tareas
-- Filtro por estado `completed`
-- Healthcheck
 - Revisión y mejora del manejo de errores
 - Cobertura de tests con `pytest-cov`
-- Revisión final de tests y casos límite
+- Revisión final y reorganización de la suite de tests
+- Revisión de casos límite
 - Docker y Docker Compose
 - CI completo con cobertura y validaciones adicionales
 - Deploy en Azure
@@ -599,6 +669,11 @@ Actualmente están implementados:
 - protección de modificación de tareas ajenas
 - protección de eliminación de tareas ajenas
 - uso de `404` para evitar revelar recursos pertenecientes a otros usuarios
+- paginación mediante `skip` y `limit`
+- límite máximo de 100 tareas por petición
+- filtrado por estado `completed`
+- validación de parámetros de paginación
+- endpoint público `GET /health`
 - migración Alembic `5fc071f53c9f_add_user_to_tasks.py`
 - respuestas `401` para peticiones no autenticadas
 - cabecera `WWW-Authenticate: Bearer`
@@ -610,14 +685,15 @@ Actualmente están implementados:
 - migraciones y versionado de base de datos con Alembic
 - migraciones reproducibles desde una base de datos vacía
 - base de datos de test separada
-- suite de tests separada por tareas, usuarios y autenticación
+- suite de tests separada por tareas, usuarios, autenticación y healthcheck
 - fixtures compartidas mediante `conftest.py`
 - fixtures `auth_headers` y `second_auth_headers`
 - limpieza automática de la base de datos entre tests
 - comprobación automática de la propiedad de las tareas
 - tests de aislamiento entre múltiples usuarios
-- 25 tests automáticos
+- tests de paginación y filtros
+- 30 tests automáticos
 - análisis de código con Ruff
 - CI con GitHub Actions, PostgreSQL y migraciones
 
-La siguiente fase estará centrada en completar las mejoras finales de la API, empezando por paginación, filtros y healthcheck.
+La siguiente fase estará centrada en revisar la calidad final de la API y de su suite de tests antes de comenzar con Docker y el despliegue.

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.crud import (
@@ -21,10 +21,19 @@ router = APIRouter(
 
 @router.get("", response_model=list[Task])
 def get_tasks(
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=10, ge=1, le=100),
+    completed: bool | None = Query(default=None),
     db: Session = Depends(get_db),
     current_user: UserDB = Depends(get_current_user),
 ):
-    return get_all_tasks(db, current_user.id)
+    return get_all_tasks(
+        db,
+        current_user.id,
+        skip,
+        limit,
+        completed,
+    )
 
 
 @router.get("/{task_id}", response_model=Task)
