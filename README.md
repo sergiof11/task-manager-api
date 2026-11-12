@@ -19,6 +19,8 @@ API REST para gestionar tareas y usuarios, desarrollada con FastAPI y PostgreSQL
 - pytest-cov
 - httpx
 - Ruff
+- Docker
+- Docker Compose
 - GitHub Actions
 
 ## Funcionalidades actuales
@@ -77,6 +79,12 @@ API REST para gestionar tareas y usuarios, desarrollada con FastAPI y PostgreSQL
 - Cobertura de código mediante `pytest-cov`
 - 100% de cobertura sobre el código de `app/`
 - Análisis estático y linting con Ruff
+- Contenerización de la API mediante Docker
+- Orquestación de FastAPI y PostgreSQL mediante Docker Compose
+- Comunicación entre contenedores mediante la red interna de Docker Compose
+- Healthcheck de PostgreSQL antes de iniciar la API
+- Aplicación automática de migraciones Alembic al iniciar el contenedor de la API
+- Persistencia de PostgreSQL mediante un volumen Docker
 - Integración continua con GitHub Actions
 
 ## Estructura del proyecto
@@ -114,15 +122,20 @@ task-manager-api/
 │   ├── test_tasks_crud.py
 │   ├── test_tasks_filters.py
 │   └── test_users.py
+├── .dockerignore
 ├── .env.example
 ├── .gitignore
 ├── alembic.ini
+├── docker-compose.yml
+├── Dockerfile
 ├── pyproject.toml
 ├── requirements.txt
 └── README.md
 ```
 
-Los archivos y carpetas locales como `.env`, `venv/`, `__pycache__/`, `.pytest_cache/`, `.ruff_cache/` y los archivos locales generados por herramientas están excluidos mediante `.gitignore` cuando corresponde.
+Los archivos y carpetas locales como `.env`, `venv/`, `__pycache__/`, `.pytest_cache/`, `.ruff_cache/` y los archivos generados por herramientas de cobertura están excluidos mediante `.gitignore` cuando corresponde.
+
+El archivo `.dockerignore` evita copiar al contexto de construcción de Docker archivos innecesarios o sensibles como el entorno virtual, `.env`, cachés, datos de cobertura y metadatos de Git.
 
 ## Instalación
 
@@ -177,7 +190,11 @@ JWT_ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 ```
 
-También es necesario tener PostgreSQL instalado y crear una base de datos llamada:
+La configuración de la aplicación se centraliza en `app/config.py` mediante `pydantic-settings`.
+
+### Ejecución local sin Docker
+
+Para ejecutar la aplicación directamente desde el sistema es necesario tener PostgreSQL instalado y crear una base de datos llamada:
 
 ```text
 gestor_tareas
@@ -189,7 +206,22 @@ Para los tests se utiliza una base de datos PostgreSQL separada:
 gestor_tareas_test
 ```
 
-La configuración de la aplicación se centraliza en `app/config.py` mediante `pydantic-settings`.
+Cuando la aplicación se ejecuta localmente, `DB_HOST=localhost` permite conectar FastAPI con la instalación local de PostgreSQL.
+
+### Ejecución con Docker
+
+Cuando el proyecto se ejecuta mediante Docker Compose, PostgreSQL se levanta en un contenedor independiente.
+
+Docker Compose sobrescribe internamente la configuración de conexión para utilizar:
+
+```text
+DB_HOST=db
+DB_PORT=5432
+```
+
+El nombre `db` corresponde al servicio PostgreSQL definido en `docker-compose.yml`.
+
+De esta forma, la API se conecta a PostgreSQL mediante la red interna creada automáticamente por Docker Compose.
 
 ## Migraciones de base de datos
 
@@ -233,7 +265,11 @@ alembic downgrade -1
 
 La aplicación ya no utiliza `Base.metadata.create_all()` para crear o evolucionar las tablas. El esquema de PostgreSQL se gestiona mediante las migraciones de Alembic.
 
-## Ejecutar la API
+En el entorno Docker, `alembic upgrade head` se ejecuta automáticamente antes de iniciar Uvicorn.
+
+Esto permite crear correctamente el esquema incluso cuando PostgreSQL parte de una base de datos completamente vacía.
+
+## Ejecutar la API localmente
 
 Antes de iniciar la aplicación, asegúrate de que las migraciones están aplicadas:
 
@@ -257,6 +293,229 @@ La documentación interactiva de FastAPI estará disponible en:
 
 ```text
 http://127.0.0.1:8000/docs
+```
+
+## Docker
+
+El proyecto puede ejecutarse mediante Docker Compose, levantando FastAPI y PostgreSQL como servicios independientes.
+
+La arquitectura del entorno es:
+
+```text
+Docker Compose
+├── api
+│   ├── Python 3.11
+│   ├── FastAPI
+│   ├── Alembic
+│   └── Uvicorn
+│
+└── db
+    └── PostgreSQL 16
+```
+
+Los dos servicios se comunican mediante una red interna creada automáticamente por Docker Compose.
+
+### Dockerfile
+
+El `Dockerfile` construye la imagen de la API utilizando:
+
+```text
+python:3.11-slim
+```
+
+Durante la construcción:
+
+1. se establece `/app` como directorio de trabajo
+2. se copia `requirements.txt`
+3. se instalan las dependencias
+4. se copia el código del proyecto
+5. se configura Uvicorn como proceso de la aplicación
+
+Construir manualmente la imagen:
+
+```bash
+docker build -t task-manager-api .
+```
+
+Comprobar las imágenes disponibles:
+
+```bash
+docker images
+```
+
+### Docker Compose
+
+El archivo `docker-compose.yml` define dos servicios:
+
+- `api`: aplicación FastAPI
+- `db`: PostgreSQL 16
+
+PostgreSQL utiliza la imagen oficial:
+
+```text
+postgres:16-alpine
+```
+
+El servicio `api` se construye utilizando el `Dockerfile` del proyecto.
+
+### Validar la configuración
+
+La configuración de Docker Compose puede comprobarse sin levantar los servicios mediante:
+
+```bash
+docker compose config -q
+```
+
+Si el comando no devuelve errores, la configuración es válida.
+
+### Levantar el proyecto
+
+Construir la imagen y levantar todos los servicios:
+
+```bash
+docker compose up --build
+```
+
+Docker Compose:
+
+1. construye la imagen de FastAPI
+2. crea la red interna
+3. crea el volumen de PostgreSQL
+4. inicia PostgreSQL
+5. espera a que PostgreSQL esté disponible
+6. aplica las migraciones de Alembic
+7. inicia Uvicorn
+
+Cuando no se han realizado cambios que requieran reconstruir la imagen, puede utilizarse:
+
+```bash
+docker compose up
+```
+
+La API estará disponible en:
+
+```text
+http://127.0.0.1:8000
+```
+
+Swagger:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+### Healthcheck de PostgreSQL
+
+El servicio `db` dispone de un healthcheck basado en:
+
+```text
+pg_isready
+```
+
+La API utiliza `depends_on` con la condición `service_healthy`, por lo que no comienza su proceso de inicio hasta que PostgreSQL está preparado para aceptar conexiones.
+
+Esto evita intentar ejecutar las migraciones o iniciar la aplicación antes de que la base de datos esté disponible.
+
+### Migraciones durante el arranque
+
+El contenedor de la API ejecuta:
+
+```bash
+alembic upgrade head
+```
+
+antes de iniciar Uvicorn.
+
+El flujo de arranque es:
+
+```text
+PostgreSQL
+    ↓
+healthcheck correcto
+    ↓
+API
+    ↓
+alembic upgrade head
+    ↓
+Uvicorn
+    ↓
+FastAPI disponible
+```
+
+### Persistencia de datos
+
+PostgreSQL utiliza el volumen:
+
+```text
+postgres_data
+```
+
+Los datos de usuarios y tareas no dependen de la vida del contenedor.
+
+Esto significa que los contenedores pueden detenerse y recrearse sin perder la información almacenada.
+
+La persistencia se ha comprobado recreando los contenedores y verificando posteriormente que usuarios y tareas seguían disponibles.
+
+### Detener los servicios
+
+Detener Docker Compose desde una ejecución en primer plano:
+
+```text
+Ctrl+C
+```
+
+Eliminar los contenedores y la red del proyecto:
+
+```bash
+docker compose down
+```
+
+Este comando conserva el volumen de PostgreSQL.
+
+Por tanto, al ejecutar posteriormente:
+
+```bash
+docker compose up
+```
+
+los datos almacenados siguen disponibles.
+
+### Eliminar también los datos
+
+Para eliminar los contenedores, la red y los volúmenes:
+
+```bash
+docker compose down -v
+```
+
+Este comando elimina también los datos almacenados por PostgreSQL.
+
+Debe utilizarse únicamente cuando se quiera reiniciar completamente el entorno Docker.
+
+### Recursos de Docker
+
+Las imágenes locales pueden consultarse mediante:
+
+```bash
+docker images
+```
+
+Los contenedores, incluidos los detenidos, pueden consultarse mediante:
+
+```bash
+docker ps -a
+```
+
+Una vista más compacta puede obtenerse mediante:
+
+```bash
+docker ps -a --format "table {{.Names}}\t{{.Image}}\t{{.Status}}"
+```
+
+Las imágenes colgantes que ya no se utilizan pueden limpiarse mediante:
+
+```bash
+docker image prune
 ```
 
 ## Endpoints
@@ -580,7 +839,7 @@ Ejemplo de respuesta:
 }
 ```
 
-Permite comprobar rápidamente que la aplicación está disponible y puede utilizarse posteriormente en entornos de despliegue o contenedores.
+Permite comprobar rápidamente que la aplicación está disponible y puede utilizarse en entornos de despliegue o contenedores.
 
 ## Tests
 
@@ -732,7 +991,6 @@ La integración de la cobertura de tests en el workflow de CI se realizará en l
 
 ## Próximas mejoras
 
-- Docker y Docker Compose
 - Integración de cobertura en GitHub Actions
 - Revisión final de CI
 - Deploy en Azure
@@ -799,6 +1057,13 @@ Actualmente están implementados:
 - 39 tests automáticos
 - cobertura del 100% sobre `app/`
 - análisis de código con Ruff
+- contenerización de FastAPI mediante Docker
+- PostgreSQL ejecutado mediante Docker Compose
+- comunicación interna entre API y PostgreSQL mediante el servicio `db`
+- healthcheck de PostgreSQL
+- ejecución automática de las migraciones Alembic antes de iniciar FastAPI
+- persistencia de los datos mediante volumen Docker
+- recreación de contenedores sin pérdida de usuarios ni tareas
 - CI con GitHub Actions, PostgreSQL y migraciones
 
-La siguiente fase estará centrada en contenerizar la aplicación y PostgreSQL mediante Docker y Docker Compose.
+La siguiente fase estará centrada en completar la integración continua con cobertura y realizar las últimas validaciones de CI antes del despliegue en Azure.
