@@ -84,14 +84,14 @@ task-manager-api/
 
 La aplicación separa responsabilidades entre distintos módulos:
 
-- `routers/` — endpoints HTTP
-- `schemas.py` — modelos de entrada y salida
-- `models.py` — modelos SQLAlchemy
-- `crud.py` — operaciones con la base de datos
-- `dependencies.py` — dependencias de autenticación
-- `security.py` — hashing de contraseñas y creación de JWT
-- `config.py` — configuración mediante variables de entorno
-- `database.py` — engine y sesiones de SQLAlchemy
+- `routers/` — Endpoints HTTP
+- `schemas.py` — Modelos de entrada y salida
+- `models.py` — Modelos SQLAlchemy
+- `crud.py` — Operaciones con la base de datos
+- `dependencies.py` — Dependencias de autenticación
+- `security.py` — Hashing de contraseñas y creación de JWT
+- `config.py` — Configuración mediante variables de entorno
+- `database.py` — Engine y sesiones de SQLAlchemy
 
 La evolución del esquema de base de datos se gestiona mediante **migraciones de Alembic**.
 
@@ -126,7 +126,7 @@ POST /auth/login
 Un login correcto devuelve un JWT que contiene:
 
 - `sub`: ID del usuario autenticado
-- `exp`: fecha de expiración del token
+- `exp`: Fecha de expiración del token
 
 Las peticiones protegidas utilizan:
 
@@ -181,7 +181,7 @@ También es posible filtrar por estado:
 GET /tasks?completed=true
 ```
 
-o:
+O:
 
 ```http
 GET /tasks?completed=false
@@ -197,12 +197,12 @@ GET /tasks?completed=false&skip=0&limit=10
 
 La API valida:
 
-- formato de email
-- longitud de contraseñas
-- títulos de tareas
+- Formato de email
+- Longitud de contraseñas
+- Títulos de tareas
 - IDs de tareas
-- parámetros de paginación
-- filtros booleanos
+- Parámetros de paginación
+- Filtros booleanos
 
 Principales respuestas de error:
 
@@ -378,18 +378,18 @@ Actualmente el proyecto cuenta con:
 
 La suite cubre:
 
-- registro de usuarios
-- emails duplicados
-- autenticación
+- Registro de usuarios
+- Emails duplicados
+- Autenticación
 - JWT válidos, inválidos y expirados
-- obtención del usuario autenticado
+- Obtención del usuario autenticado
 - CRUD de tareas
-- propiedad y aislamiento entre usuarios
-- paginación
-- filtros
-- validaciones
-- errores de integridad
-- healthcheck
+- Propiedad y aislamiento entre usuarios
+- Paginación
+- Filtros
+- Validaciones
+- Errores de integridad
+- Healthcheck
 
 Ejecutar todos los tests:
 
@@ -401,6 +401,12 @@ Ejecutar los tests con cobertura:
 
 ```bash
 python -m pytest --cov=app --cov-report=term-missing
+```
+
+Ejecutar la misma comprobación de cobertura utilizada en CI:
+
+```bash
+python -m pytest --cov=app --cov-report=term-missing --cov-fail-under=90
 ```
 
 Los tests utilizan una base de datos PostgreSQL separada:
@@ -436,12 +442,13 @@ GitHub Actions se ejecuta automáticamente en los `push` y pull requests.
 
 El workflow:
 
-1. inicia un entorno Ubuntu
-2. levanta PostgreSQL
-3. instala las dependencias
-4. ejecuta Ruff
-5. aplica las migraciones de Alembic sobre una base de datos vacía
-6. ejecuta la suite de tests
+1. Inicia un entorno Ubuntu
+2. Levanta PostgreSQL
+3. Instala las dependencias
+4. Ejecuta Ruff
+5. Aplica las migraciones de Alembic sobre una base de datos vacía
+6. Ejecuta la suite de tests con cobertura
+7. Verifica que la cobertura de `app/` sea al menos del 90%
 
 Configuración:
 
@@ -449,7 +456,7 @@ Configuración:
 .github/workflows/ci.yml
 ```
 
-La integración de cobertura en CI se añadirá durante la revisión final del workflow.
+El workflow falla automáticamente si Ruff, las migraciones, los tests o el umbral mínimo de cobertura no se completan correctamente.
 
 ## Decisiones técnicas
 
@@ -475,12 +482,11 @@ Estado actual:
 100% de cobertura sobre la aplicación
 Ruff limpio
 Docker Compose verificado
+CI con cobertura verificada
 ```
 
 Pendiente:
 
-- integrar coverage en GitHub Actions
-- revisión final de CI
-- despliegue en Azure
-- revisión de configuración y secretos de producción
-- pulido final del portfolio
+- Despliegue en Azure
+- Revisión de configuración y secretos de producción
+- Pulido final del portfolio
