@@ -11,3 +11,6 @@ __pycache__/
 # Cachés de herramientas
 .pytest_cache/
 .ruff_cache/
+.coverage
+htmlcov/
+coverage.xml

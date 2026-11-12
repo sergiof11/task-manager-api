@@ -1,3 +1,6 @@
+from sqlalchemy.exc import IntegrityError
+
+
 def test_register_user(client):
     response = client.post(
         "/users/register",
@@ -53,3 +56,28 @@ def test_register_user_with_short_password(client):
     )
 
     assert response.status_code == 422
+
+
+def test_register_user_handles_integrity_error(client, monkeypatch):
+    def raise_integrity_error(db, email, password):
+        raise IntegrityError(
+            "INSERT",
+            {},
+            Exception("duplicate email"),
+        )
+
+    monkeypatch.setattr(
+        "app.routers.users.create_user_db",
+        raise_integrity_error,
+    )
+
+    response = client.post(
+        "/users/register",
+        json={
+            "email": "test@example.com",
+            "password": "Password123",
+        },
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "El email ya está registrado"

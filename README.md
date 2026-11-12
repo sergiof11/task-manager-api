@@ -16,6 +16,7 @@ API REST para gestionar tareas y usuarios, desarrollada con FastAPI y PostgreSQL
 - Argon2
 - PyJWT
 - pytest
+- pytest-cov
 - httpx
 - Ruff
 - GitHub Actions
@@ -69,10 +70,12 @@ API REST para gestionar tareas y usuarios, desarrollada con FastAPI y PostgreSQL
 - Configuración centralizada con `pydantic-settings`
 - Organización de endpoints mediante routers
 - Base de datos PostgreSQL separada para tests
-- Suite de tests organizada por tareas, usuarios, autenticación y healthcheck
+- Suite de tests organizada por áreas de responsabilidad
 - Fixtures compartidas con pytest
 - Tests de aislamiento utilizando múltiples usuarios
 - Tests de paginación, filtros y casos límite
+- Cobertura de código mediante `pytest-cov`
+- 100% de cobertura sobre el código de `app/`
 - Análisis estático y linting con Ruff
 - Integración continua con GitHub Actions
 
@@ -107,7 +110,9 @@ task-manager-api/
 │   ├── conftest.py
 │   ├── test_auth.py
 │   ├── test_health.py
-│   ├── test_tasks.py
+│   ├── test_tasks_authorization.py
+│   ├── test_tasks_crud.py
+│   ├── test_tasks_filters.py
 │   └── test_users.py
 ├── .env.example
 ├── .gitignore
@@ -117,7 +122,7 @@ task-manager-api/
 └── README.md
 ```
 
-Los archivos y carpetas locales como `.env`, `venv/`, `__pycache__/`, `.pytest_cache/` y `.ruff_cache/` están excluidos mediante `.gitignore`.
+Los archivos y carpetas locales como `.env`, `venv/`, `__pycache__/`, `.pytest_cache/`, `.ruff_cache/` y los archivos locales generados por herramientas están excluidos mediante `.gitignore` cuando corresponde.
 
 ## Instalación
 
@@ -579,7 +584,7 @@ Permite comprobar rápidamente que la aplicación está disponible y puede utili
 
 ## Tests
 
-El proyecto utiliza `pytest` y una base de datos PostgreSQL separada para evitar que los tests modifiquen los datos de desarrollo.
+El proyecto utiliza `pytest`, `pytest-cov` y una base de datos PostgreSQL separada para evitar que los tests modifiquen los datos de desarrollo.
 
 La suite está organizada por áreas de responsabilidad:
 
@@ -588,7 +593,9 @@ tests/
 ├── conftest.py
 ├── test_auth.py
 ├── test_health.py
-├── test_tasks.py
+├── test_tasks_authorization.py
+├── test_tasks_crud.py
+├── test_tasks_filters.py
 └── test_users.py
 ```
 
@@ -602,8 +609,10 @@ tests/
 
 Los tests se distribuyen de la siguiente forma:
 
-- `test_tasks.py`: CRUD, validaciones, autenticación, propiedad, aislamiento, paginación, filtros y casos límite de tareas
-- `test_users.py`: registro, duplicados y validaciones de usuarios
+- `test_tasks_crud.py`: operaciones CRUD y validaciones de tareas
+- `test_tasks_authorization.py`: autenticación, propiedad y aislamiento entre usuarios
+- `test_tasks_filters.py`: paginación, filtros y validación de parámetros
+- `test_users.py`: registro, duplicados, conflictos de integridad y validaciones de usuarios
 - `test_auth.py`: login, generación de JWT, autenticación y casos límite de tokens
 - `test_health.py`: comprobación del endpoint de estado de la API
 - `conftest.py`: configuración y fixtures compartidas
@@ -614,54 +623,59 @@ Ejecutar todos los tests:
 python -m pytest
 ```
 
-Actualmente el proyecto cuenta con **38 tests** que comprueban:
+Actualmente el proyecto cuenta con **39 tests automatizados**.
 
-- listado de tareas con usuario autenticado
-- rechazo del acceso a tareas sin token (`401`)
-- rechazo del acceso a tareas con token inválido (`401`)
+Entre otros comportamientos, la suite comprueba:
+
+- CRUD completo de tareas
+- autenticación JWT
+- acceso con token inválido o expirado
 - cabecera `WWW-Authenticate: Bearer`
-- obtención de una tarea existente por ID
-- obtención de una tarea inexistente (`404`)
-- rechazo de IDs de tarea no válidos (`422`)
-- creación de tareas
-- actualización de tareas
-- actualización de una tarea inexistente (`404`)
-- eliminación de tareas
-- eliminación de una tarea inexistente (`404`)
-- validación de títulos formados solo por espacios
-- validación de títulos superiores a 200 caracteres
+- tareas inexistentes
+- validación de IDs
+- validación de títulos
 - registro de usuarios
-- rechazo de emails duplicados mediante `409 Conflict`
-- validación de emails incorrectos
-- validación de contraseñas demasiado cortas durante el registro
-- login con credenciales correctas y generación de JWT válido
-- rechazo de login con contraseña incorrecta (`401`)
-- rechazo de login con usuario inexistente (`401`)
-- mismo comportamiento de autenticación para email inexistente y contraseña incorrecta
-- cabecera `WWW-Authenticate: Bearer` en errores de login
-- rechazo de contraseñas superiores a 128 caracteres durante el login
-- obtención del usuario autenticado con un JWT válido
-- rechazo de tokens inválidos (`401`)
-- rechazo de tokens expirados (`401`)
-- rechazo de JWT válido asociado a un usuario inexistente (`401`)
-- comprobación de que una tarea creada pertenece al usuario autenticado
-- listado aislado de tareas entre dos usuarios
-- rechazo del acceso a una tarea de otro usuario (`404`)
-- rechazo de la modificación de una tarea de otro usuario (`404`)
-- rechazo de la eliminación de una tarea de otro usuario (`404`)
-- paginación mediante `skip` y `limit`
-- rechazo de valores negativos de `skip`
-- rechazo de límites superiores al máximo permitido
-- filtrado de tareas completadas
-- filtrado de tareas pendientes
-- rechazo de valores inválidos en el filtro `completed`
-- funcionamiento del endpoint `GET /health`
+- validación de emails
+- contraseñas inválidas
+- emails duplicados
+- manejo de `IntegrityError`
+- recuperación de la sesión mediante `rollback()`
+- login correcto e incorrecto
+- JWT válido asociado a un usuario inexistente
+- propiedad de tareas
+- aislamiento entre usuarios
+- paginación
+- filtros por estado
+- validación de parámetros
+- healthcheck
 
-Los tests de aislamiento crean usuarios independientes y comprueban que cada uno únicamente puede operar sobre sus propias tareas.
+### Cobertura de tests
 
-El test de propiedad comprueba directamente en PostgreSQL que el `user_id` almacenado en la tarea coincide con el ID contenido en el claim `sub` del JWT del usuario autenticado.
+La cobertura del código de aplicación se mide mediante `pytest-cov`.
 
-Los tests de autenticación comprueban también que el JWT generado tiene una firma válida, contiene los claims `sub` y `exp`, permite recuperar correctamente al usuario autenticado y deja de ser válido para acceder a recursos si el usuario asociado ya no existe.
+Ejecutar tests y mostrar la cobertura:
+
+```bash
+python -m pytest --cov=app --cov-report=term-missing
+```
+
+El reporte indica:
+
+- número de líneas ejecutables por archivo
+- líneas que no han sido ejecutadas por los tests
+- porcentaje de cobertura
+- líneas concretas que faltan por cubrir
+
+Actualmente la suite alcanza:
+
+```text
+39 tests passed
+100% coverage
+```
+
+sobre las líneas ejecutables del directorio `app/`.
+
+El 100% de cobertura indica que todas las líneas ejecutables de la aplicación son recorridas al menos una vez por la suite actual. No implica por sí solo ausencia de errores, por lo que la cobertura se utiliza junto con tests funcionales y casos límite.
 
 ## Calidad de código
 
@@ -686,6 +700,13 @@ ruff check .
 python -m pytest
 ```
 
+Para una revisión completa incluyendo cobertura:
+
+```bash
+ruff check .
+python -m pytest --cov=app --cov-report=term-missing
+```
+
 ## Integración continua
 
 El proyecto utiliza GitHub Actions para ejecutar automáticamente las comprobaciones después de cada `push` y en los pull requests.
@@ -707,12 +728,13 @@ La configuración se encuentra en:
 .github/workflows/ci.yml
 ```
 
+La integración de la cobertura de tests en el workflow de CI se realizará en la fase final de configuración de GitHub Actions.
+
 ## Próximas mejoras
 
-- Cobertura de tests con `pytest-cov`
-- Revisión final y reorganización de la suite de tests
 - Docker y Docker Compose
-- CI completo con cobertura y validaciones adicionales
+- Integración de cobertura en GitHub Actions
+- Revisión final de CI
 - Deploy en Azure
 - Revisión de secretos y configuración para producción
 - README final para portfolio
@@ -761,22 +783,22 @@ Actualmente están implementados:
 - protección frente a emails duplicados mediante comprobación previa y restricción `UNIQUE`
 - respuesta `409 Conflict` para emails duplicados
 - manejo de `IntegrityError` y `rollback()` de la sesión
-- migración Alembic `5fc071f53c9f_add_user_to_tasks.py`
+- migraciones y versionado de base de datos con Alembic
+- migraciones reproducibles desde una base de datos vacía
 - configuración centralizada con `pydantic-settings`
 - configuración JWT mediante variables de entorno
 - organización de rutas mediante routers
-- migraciones y versionado de base de datos con Alembic
-- migraciones reproducibles desde una base de datos vacía
 - base de datos de test separada
-- suite de tests separada por tareas, usuarios, autenticación y healthcheck
+- suite de tests reorganizada por responsabilidad
 - fixtures compartidas mediante `conftest.py`
 - fixtures `auth_headers` y `second_auth_headers`
 - limpieza automática de la base de datos entre tests
-- comprobación automática de la propiedad de las tareas
 - tests de aislamiento entre múltiples usuarios
 - tests de paginación, filtros, autenticación y casos límite
-- 38 tests automáticos
+- manejo de errores de integridad cubierto mediante tests
+- 39 tests automáticos
+- cobertura del 100% sobre `app/`
 - análisis de código con Ruff
 - CI con GitHub Actions, PostgreSQL y migraciones
 
-La siguiente fase estará centrada en medir la cobertura de la suite de tests y reorganizarla para dejar la parte de testing cerrada antes de comenzar con Docker.
+La siguiente fase estará centrada en contenerizar la aplicación y PostgreSQL mediante Docker y Docker Compose.
