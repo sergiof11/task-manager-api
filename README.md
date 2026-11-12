@@ -1,91 +1,39 @@
 # Task Manager API
 
-API REST para gestionar tareas y usuarios, desarrollada con FastAPI y PostgreSQL.
+API REST para la gestión de tareas desarrollada con **FastAPI, PostgreSQL y SQLAlchemy**.
+
+Incluye autenticación JWT, aislamiento de tareas por usuario, migraciones de base de datos, tests automatizados, Docker e integración continua.
+
+## Funcionalidades
+
+- Registro y login de usuarios
+- Hash seguro de contraseñas con Argon2
+- Autenticación JWT con expiración
+- Endpoints de tareas protegidos
+- CRUD completo de tareas
+- Propiedad y aislamiento de tareas por usuario
+- Paginación y filtrado por estado
+- Validación de datos y manejo de errores
+- Persistencia con PostgreSQL y SQLAlchemy
+- Migraciones mediante Alembic
+- Docker y Docker Compose
+- Tests automatizados con 100% de cobertura sobre `app/`
+- Análisis de código con Ruff
+- Integración continua con GitHub Actions
 
 ## Tecnologías
 
-- Python
-- FastAPI
-- PostgreSQL
-- SQLAlchemy
-- psycopg
-- Alembic
-- Pydantic
-- pydantic-settings
-- pwdlib
-- Argon2
-- PyJWT
-- pytest
-- pytest-cov
-- httpx
-- Ruff
-- Docker
-- Docker Compose
-- GitHub Actions
-
-## Funcionalidades actuales
-
-- Crear tareas
-- Listar tareas
-- Obtener una tarea por ID
-- Actualizar tareas
-- Eliminar tareas
-- Validación de datos
-- Registro de usuarios
-- Login de usuarios
-- Generación de access tokens JWT
-- Validación de access tokens JWT
-- Tokens JWT con identificación de usuario y expiración
-- Obtención del usuario autenticado mediante JWT
-- Endpoint protegido `GET /auth/me`
-- Protección mediante JWT de todos los endpoints `/tasks`
-- Relación entre usuarios y tareas mediante `user_id`
-- Asignación automática del usuario autenticado al crear una tarea
-- Foreign key entre `tasks.user_id` y `users.id`
-- Índice sobre `tasks.user_id`
-- Aislamiento de tareas por usuario
-- Listado exclusivo de las tareas del usuario autenticado
-- Protección frente al acceso a tareas de otros usuarios
-- Protección frente a la modificación de tareas de otros usuarios
-- Protección frente a la eliminación de tareas de otros usuarios
-- Respuesta `404 Not Found` para tareas inexistentes o pertenecientes a otro usuario
-- Paginación de tareas mediante `skip` y `limit`
-- Límite máximo de 100 tareas por petición
-- Filtro de tareas por estado `completed`
-- Validación automática de parámetros de paginación
-- Validación de IDs de tareas positivos
-- Endpoint público `GET /health`
-- Respuestas `401 Unauthorized` para errores de autenticación
-- Cabecera `WWW-Authenticate: Bearer` en respuestas `401`
-- Mismo mensaje de error para email inexistente y contraseña incorrecta durante el login
-- Validación de emails
-- Protección frente a emails duplicados
-- Respuesta `409 Conflict` al intentar registrar un email existente
-- Protección adicional frente a duplicados mediante la restricción `UNIQUE` de PostgreSQL
-- Recuperación de la sesión mediante `rollback()` ante conflictos de integridad
-- Validación de longitud de contraseñas
-- Verificación segura de contraseñas
-- Hash seguro de contraseñas con Argon2
-- Acceso a PostgreSQL mediante SQLAlchemy
-- Consultas parametrizadas mediante SQLAlchemy
-- Migraciones y versionado del esquema con Alembic
-- Configuración centralizada con `pydantic-settings`
-- Organización de endpoints mediante routers
-- Base de datos PostgreSQL separada para tests
-- Suite de tests organizada por áreas de responsabilidad
-- Fixtures compartidas con pytest
-- Tests de aislamiento utilizando múltiples usuarios
-- Tests de paginación, filtros y casos límite
-- Cobertura de código mediante `pytest-cov`
-- 100% de cobertura sobre el código de `app/`
-- Análisis estático y linting con Ruff
-- Contenerización de la API mediante Docker
-- Orquestación de FastAPI y PostgreSQL mediante Docker Compose
-- Comunicación entre contenedores mediante la red interna de Docker Compose
-- Healthcheck de PostgreSQL antes de iniciar la API
-- Aplicación automática de migraciones Alembic al iniciar el contenedor de la API
-- Persistencia de PostgreSQL mediante un volumen Docker
-- Integración continua con GitHub Actions
+| Área | Tecnologías |
+|---|---|
+| Backend | Python 3.11, FastAPI, Uvicorn |
+| Base de datos | PostgreSQL, SQLAlchemy, psycopg |
+| Validación y configuración | Pydantic, pydantic-settings |
+| Autenticación | PyJWT, Argon2, pwdlib |
+| Migraciones | Alembic |
+| Testing | pytest, pytest-cov, httpx |
+| Calidad de código | Ruff |
+| Infraestructura | Docker, Docker Compose |
+| CI | GitHub Actions |
 
 ## Estructura del proyecto
 
@@ -99,21 +47,20 @@ task-manager-api/
 │   │   ├── 902afd450102_initial_schema.py
 │   │   └── 5fc071f53c9f_add_user_to_tasks.py
 │   ├── env.py
-│   ├── README
 │   └── script.py.mako
 ├── app/
-│   ├── main.py
+│   ├── routers/
+│   │   ├── auth.py
+│   │   ├── tasks.py
+│   │   └── users.py
 │   ├── config.py
 │   ├── crud.py
 │   ├── database.py
 │   ├── dependencies.py
+│   ├── main.py
 │   ├── models.py
 │   ├── schemas.py
-│   ├── security.py
-│   └── routers/
-│       ├── auth.py
-│       ├── tasks.py
-│       └── users.py
+│   └── security.py
 ├── tests/
 │   ├── conftest.py
 │   ├── test_auth.py
@@ -133,462 +80,102 @@ task-manager-api/
 └── README.md
 ```
 
-Los archivos y carpetas locales como `.env`, `venv/`, `__pycache__/`, `.pytest_cache/`, `.ruff_cache/` y los archivos generados por herramientas de cobertura están excluidos mediante `.gitignore` cuando corresponde.
-
-El archivo `.dockerignore` evita copiar al contexto de construcción de Docker archivos innecesarios o sensibles como el entorno virtual, `.env`, cachés, datos de cobertura y metadatos de Git.
-
-## Instalación
-
-### 1. Clonar el repositorio
-
-```bash
-git clone https://github.com/sergiof11/task-manager-api.git
-cd task-manager-api
-```
-
-### 2. Crear un entorno virtual
-
-```bash
-python -m venv venv
-```
-
-### 3. Activar el entorno virtual
-
-#### Windows PowerShell
-
-```powershell
-.\venv\Scripts\Activate
-```
-
-#### Linux / macOS
-
-```bash
-source venv/bin/activate
-```
-
-### 4. Instalar las dependencias
-
-```bash
-pip install -r requirements.txt
-```
-
-## Configuración
-
-Crear un archivo `.env` a partir de `.env.example`.
-
-Ejemplo:
-
-```env
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=gestor_tareas
-DB_USER=postgres
-DB_PASSWORD=your_password_here
-
-JWT_SECRET_KEY=your_secret_key_here
-JWT_ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-```
-
-La configuración de la aplicación se centraliza en `app/config.py` mediante `pydantic-settings`.
-
-### Ejecución local sin Docker
-
-Para ejecutar la aplicación directamente desde el sistema es necesario tener PostgreSQL instalado y crear una base de datos llamada:
-
-```text
-gestor_tareas
-```
-
-Para los tests se utiliza una base de datos PostgreSQL separada:
-
-```text
-gestor_tareas_test
-```
-
-Cuando la aplicación se ejecuta localmente, `DB_HOST=localhost` permite conectar FastAPI con la instalación local de PostgreSQL.
-
-### Ejecución con Docker
-
-Cuando el proyecto se ejecuta mediante Docker Compose, PostgreSQL se levanta en un contenedor independiente.
-
-Docker Compose sobrescribe internamente la configuración de conexión para utilizar:
-
-```text
-DB_HOST=db
-DB_PORT=5432
-```
-
-El nombre `db` corresponde al servicio PostgreSQL definido en `docker-compose.yml`.
-
-De esta forma, la API se conecta a PostgreSQL mediante la red interna creada automáticamente por Docker Compose.
-
-## Migraciones de base de datos
-
-El proyecto utiliza Alembic para gestionar y versionar los cambios del esquema de PostgreSQL.
-
-Actualmente existen dos migraciones:
-
-- `902afd450102_initial_schema.py`: crea las tablas iniciales `users` y `tasks`
-- `5fc071f53c9f_add_user_to_tasks.py`: añade `user_id` a las tareas y crea la relación con `users`
-
-La relación entre tareas y usuarios utiliza:
-
-- `tasks.user_id`
-- foreign key hacia `users.id`
-- índice sobre `tasks.user_id`
-- restricción `NOT NULL` para garantizar que toda tarea tenga propietario
-
-Aplicar todas las migraciones pendientes:
-
-```bash
-alembic upgrade head
-```
-
-Comprobar la versión actual de la base de datos:
-
-```bash
-alembic current
-```
-
-Crear una nueva migración detectando cambios en los modelos SQLAlchemy:
-
-```bash
-alembic revision --autogenerate -m "descripcion de la migracion"
-```
-
-Deshacer la última migración:
-
-```bash
-alembic downgrade -1
-```
-
-La aplicación ya no utiliza `Base.metadata.create_all()` para crear o evolucionar las tablas. El esquema de PostgreSQL se gestiona mediante las migraciones de Alembic.
-
-En el entorno Docker, `alembic upgrade head` se ejecuta automáticamente antes de iniciar Uvicorn.
-
-Esto permite crear correctamente el esquema incluso cuando PostgreSQL parte de una base de datos completamente vacía.
-
-## Ejecutar la API localmente
-
-Antes de iniciar la aplicación, asegúrate de que las migraciones están aplicadas:
-
-```bash
-alembic upgrade head
-```
-
-Después, con el entorno virtual activado:
-
-```bash
-python -m uvicorn app.main:app --reload
-```
-
-La API estará disponible en:
-
-```text
-http://127.0.0.1:8000
-```
-
-La documentación interactiva de FastAPI estará disponible en:
-
-```text
-http://127.0.0.1:8000/docs
-```
-
-## Docker
-
-El proyecto puede ejecutarse mediante Docker Compose, levantando FastAPI y PostgreSQL como servicios independientes.
-
-La arquitectura del entorno es:
-
-```text
-Docker Compose
-├── api
-│   ├── Python 3.11
-│   ├── FastAPI
-│   ├── Alembic
-│   └── Uvicorn
-│
-└── db
-    └── PostgreSQL 16
-```
-
-Los dos servicios se comunican mediante una red interna creada automáticamente por Docker Compose.
-
-### Dockerfile
-
-El `Dockerfile` construye la imagen de la API utilizando:
-
-```text
-python:3.11-slim
-```
-
-Durante la construcción:
-
-1. se establece `/app` como directorio de trabajo
-2. se copia `requirements.txt`
-3. se instalan las dependencias
-4. se copia el código del proyecto
-5. se configura Uvicorn como proceso de la aplicación
-
-Construir manualmente la imagen:
-
-```bash
-docker build -t task-manager-api .
-```
-
-Comprobar las imágenes disponibles:
-
-```bash
-docker images
-```
-
-### Docker Compose
-
-El archivo `docker-compose.yml` define dos servicios:
-
-- `api`: aplicación FastAPI
-- `db`: PostgreSQL 16
-
-PostgreSQL utiliza la imagen oficial:
-
-```text
-postgres:16-alpine
-```
-
-El servicio `api` se construye utilizando el `Dockerfile` del proyecto.
-
-### Validar la configuración
-
-La configuración de Docker Compose puede comprobarse sin levantar los servicios mediante:
-
-```bash
-docker compose config -q
-```
-
-Si el comando no devuelve errores, la configuración es válida.
-
-### Levantar el proyecto
-
-Construir la imagen y levantar todos los servicios:
-
-```bash
-docker compose up --build
-```
-
-Docker Compose:
-
-1. construye la imagen de FastAPI
-2. crea la red interna
-3. crea el volumen de PostgreSQL
-4. inicia PostgreSQL
-5. espera a que PostgreSQL esté disponible
-6. aplica las migraciones de Alembic
-7. inicia Uvicorn
-
-Cuando no se han realizado cambios que requieran reconstruir la imagen, puede utilizarse:
-
-```bash
-docker compose up
-```
-
-La API estará disponible en:
-
-```text
-http://127.0.0.1:8000
-```
-
-Swagger:
-
-```text
-http://127.0.0.1:8000/docs
-```
-
-### Healthcheck de PostgreSQL
-
-El servicio `db` dispone de un healthcheck basado en:
-
-```text
-pg_isready
-```
-
-La API utiliza `depends_on` con la condición `service_healthy`, por lo que no comienza su proceso de inicio hasta que PostgreSQL está preparado para aceptar conexiones.
-
-Esto evita intentar ejecutar las migraciones o iniciar la aplicación antes de que la base de datos esté disponible.
-
-### Migraciones durante el arranque
-
-El contenedor de la API ejecuta:
-
-```bash
-alembic upgrade head
-```
-
-antes de iniciar Uvicorn.
-
-El flujo de arranque es:
-
-```text
-PostgreSQL
-    ↓
-healthcheck correcto
-    ↓
-API
-    ↓
-alembic upgrade head
-    ↓
-Uvicorn
-    ↓
-FastAPI disponible
-```
-
-### Persistencia de datos
-
-PostgreSQL utiliza el volumen:
-
-```text
-postgres_data
-```
-
-Los datos de usuarios y tareas no dependen de la vida del contenedor.
-
-Esto significa que los contenedores pueden detenerse y recrearse sin perder la información almacenada.
-
-La persistencia se ha comprobado recreando los contenedores y verificando posteriormente que usuarios y tareas seguían disponibles.
-
-### Detener los servicios
-
-Detener Docker Compose desde una ejecución en primer plano:
-
-```text
-Ctrl+C
-```
-
-Eliminar los contenedores y la red del proyecto:
-
-```bash
-docker compose down
-```
-
-Este comando conserva el volumen de PostgreSQL.
-
-Por tanto, al ejecutar posteriormente:
-
-```bash
-docker compose up
-```
-
-los datos almacenados siguen disponibles.
-
-### Eliminar también los datos
-
-Para eliminar los contenedores, la red y los volúmenes:
-
-```bash
-docker compose down -v
-```
-
-Este comando elimina también los datos almacenados por PostgreSQL.
-
-Debe utilizarse únicamente cuando se quiera reiniciar completamente el entorno Docker.
-
-### Recursos de Docker
-
-Las imágenes locales pueden consultarse mediante:
-
-```bash
-docker images
-```
-
-Los contenedores, incluidos los detenidos, pueden consultarse mediante:
-
-```bash
-docker ps -a
-```
-
-Una vista más compacta puede obtenerse mediante:
-
-```bash
-docker ps -a --format "table {{.Names}}\t{{.Image}}\t{{.Status}}"
-```
-
-Las imágenes colgantes que ya no se utilizan pueden limpiarse mediante:
-
-```bash
-docker image prune
-```
+## Arquitectura
+
+La aplicación separa responsabilidades entre distintos módulos:
+
+- `routers/` — endpoints HTTP
+- `schemas.py` — modelos de entrada y salida
+- `models.py` — modelos SQLAlchemy
+- `crud.py` — operaciones con la base de datos
+- `dependencies.py` — dependencias de autenticación
+- `security.py` — hashing de contraseñas y creación de JWT
+- `config.py` — configuración mediante variables de entorno
+- `database.py` — engine y sesiones de SQLAlchemy
+
+La evolución del esquema de base de datos se gestiona mediante **migraciones de Alembic**.
 
 ## Endpoints
 
-### Tasks
+| Método | Endpoint | Auth | Descripción |
+|---|---|---|---|
+| `POST` | `/users/register` | No | Registrar un usuario |
+| `POST` | `/auth/login` | No | Autenticarse y obtener un JWT |
+| `GET` | `/auth/me` | Sí | Obtener el usuario autenticado |
+| `GET` | `/tasks` | Sí | Listar las tareas propias |
+| `GET` | `/tasks/{task_id}` | Sí | Obtener una tarea |
+| `POST` | `/tasks` | Sí | Crear una tarea |
+| `PUT` | `/tasks/{task_id}` | Sí | Actualizar una tarea |
+| `DELETE` | `/tasks/{task_id}` | Sí | Eliminar una tarea |
+| `GET` | `/health` | No | Comprobar el estado de la API |
 
-Todos los endpoints de tareas están protegidos mediante autenticación JWT.
+Documentación interactiva:
 
-Es necesario enviar un access token válido mediante la cabecera:
+```text
+http://127.0.0.1:8000/docs
+```
+
+## Autenticación y autorización
+
+Los usuarios inician sesión mediante:
+
+```http
+POST /auth/login
+```
+
+Un login correcto devuelve un JWT que contiene:
+
+- `sub`: ID del usuario autenticado
+- `exp`: fecha de expiración del token
+
+Las peticiones protegidas utilizan:
 
 ```text
 Authorization: Bearer <access_token>
 ```
 
-Si no se proporciona un token válido, la API devuelve:
+El cliente nunca envía manualmente el `user_id` al crear una tarea.
 
-```text
-401 Unauthorized
-```
-
-junto con:
-
-```text
-WWW-Authenticate: Bearer
-```
-
-Cada tarea almacena internamente el ID del usuario que la creó mediante `user_id`.
-
-El cliente no envía manualmente este valor. La API obtiene el usuario autenticado a partir del JWT y asigna automáticamente:
+La API asigna automáticamente:
 
 ```text
 tasks.user_id = current_user.id
 ```
 
-Además, todas las operaciones sobre tareas están filtradas por el usuario autenticado.
+Todas las operaciones sobre tareas se filtran por el usuario autenticado.
 
-Esto significa que un usuario únicamente puede listar, consultar, actualizar o eliminar sus propias tareas.
+De esta forma, cada usuario únicamente puede consultar, modificar o eliminar sus propias tareas.
 
-Si intenta acceder a una tarea perteneciente a otro usuario, la API responde:
+Las tareas inexistentes o pertenecientes a otro usuario devuelven:
 
 ```text
 404 Not Found
 ```
 
-La API utiliza `404` en lugar de revelar que la tarea existe pero pertenece a otro usuario.
+Esto evita revelar la existencia de recursos pertenecientes a otros usuarios.
 
-Los IDs de tareas deben ser enteros positivos. Un `task_id` igual o inferior a `0` es rechazado automáticamente con:
+## Paginación y filtros
 
-```text
-422 Unprocessable Entity
-```
-
-#### Obtener todas las tareas
-
-```http
-GET /tasks
-```
-
-Devuelve únicamente las tareas cuyo `user_id` corresponde al usuario autenticado.
-
-El endpoint admite paginación mediante los parámetros:
-
-- `skip`: número de tareas que se omiten. Valor por defecto: `0`
-- `limit`: número máximo de tareas devueltas. Valor por defecto: `10`
-- `limit` debe estar entre `1` y `100`
-
-Ejemplo:
+`GET /tasks` permite paginación mediante:
 
 ```http
 GET /tasks?skip=0&limit=10
 ```
 
-También permite filtrar las tareas por su estado:
+Valores por defecto:
+
+```text
+skip = 0
+limit = 10
+```
+
+El límite máximo permitido es:
+
+```text
+limit = 100
+```
+
+También es posible filtrar por estado:
 
 ```http
 GET /tasks?completed=true
@@ -603,278 +190,206 @@ GET /tasks?completed=false
 Los parámetros pueden combinarse:
 
 ```http
-GET /tasks?completed=true&skip=0&limit=10
+GET /tasks?completed=false&skip=0&limit=10
 ```
 
-La paginación mantiene un orden estable por ID.
+## Validación y manejo de errores
 
-FastAPI valida automáticamente los parámetros:
+La API valida:
 
-- `skip >= 0`
-- `1 <= limit <= 100`
-- `completed` debe representar un valor booleano válido
+- formato de email
+- longitud de contraseñas
+- títulos de tareas
+- IDs de tareas
+- parámetros de paginación
+- filtros booleanos
 
-Si los parámetros no cumplen las restricciones definidas, devuelve:
+Principales respuestas de error:
 
-```text
-422 Unprocessable Entity
-```
+| Estado | Uso |
+|---|---|
+| `401 Unauthorized` | Autenticación inválida o inexistente |
+| `404 Not Found` | Tarea inexistente o perteneciente a otro usuario |
+| `409 Conflict` | Email ya registrado |
+| `422 Unprocessable Entity` | Datos de entrada inválidos |
 
-#### Obtener una tarea
-
-```http
-GET /tasks/{task_id}
-```
-
-Solo devuelve la tarea si pertenece al usuario autenticado.
-
-#### Crear una tarea
-
-```http
-POST /tasks
-```
-
-Ejemplo:
-
-```json
-{
-  "title": "Estudiar FastAPI"
-}
-```
-
-El campo `completed` es opcional al crear una tarea y por defecto es `false`.
-
-El título debe tener entre `1` y `200` caracteres y no puede estar formado únicamente por espacios.
-
-El propietario de la tarea se obtiene automáticamente del usuario autenticado y no debe enviarse en el cuerpo de la petición.
-
-#### Actualizar una tarea
-
-```http
-PUT /tasks/{task_id}
-```
-
-Ejemplo:
-
-```json
-{
-  "title": "Estudiar FastAPI y PostgreSQL",
-  "completed": true
-}
-```
-
-Solo se puede actualizar una tarea perteneciente al usuario autenticado.
-
-#### Eliminar una tarea
-
-```http
-DELETE /tasks/{task_id}
-```
-
-Solo se puede eliminar una tarea perteneciente al usuario autenticado.
-
-### Users
-
-#### Registrar un usuario
-
-```http
-POST /users/register
-```
-
-Ejemplo:
-
-```json
-{
-  "email": "user@example.com",
-  "password": "Password123"
-}
-```
-
-Las contraseñas no se almacenan en texto plano. Se transforman mediante Argon2 antes de guardarse en PostgreSQL.
-
-La contraseña debe tener entre `8` y `128` caracteres.
-
-El email debe tener un formato válido y no puede estar registrado previamente.
-
-Si se intenta registrar un email existente, la API devuelve:
-
-```text
-409 Conflict
-```
-
-con el mensaje:
-
-```json
-{
-  "detail": "El email ya está registrado"
-}
-```
-
-La aplicación realiza una comprobación previa del email y PostgreSQL mantiene además una restricción `UNIQUE` como protección definitiva frente a duplicados.
-
-Si durante la inserción se produce un conflicto de integridad, la sesión de SQLAlchemy realiza `rollback()` y la API responde igualmente con `409 Conflict`.
-
-### Auth
-
-#### Login de usuario
-
-```http
-POST /auth/login
-```
-
-Ejemplo:
-
-```json
-{
-  "email": "user@example.com",
-  "password": "Password123"
-}
-```
-
-El endpoint comprueba que el usuario existe y que la contraseña coincide con el hash almacenado.
-
-Las contraseñas enviadas al login tienen un límite máximo de `128` caracteres.
-
-Si las credenciales son correctas, genera y devuelve un access token JWT:
-
-```json
-{
-  "access_token": "eyJhbGciOiJIUzI1NiIs...",
-  "token_type": "bearer"
-}
-```
-
-El token contiene:
-
-- `sub`: ID del usuario autenticado
-- `exp`: fecha y hora de expiración del token
-
-La duración del token se configura mediante:
-
-```text
-ACCESS_TOKEN_EXPIRE_MINUTES
-```
-
-Si el email no existe o la contraseña es incorrecta, devuelve:
-
-```text
-401 Unauthorized
-```
-
-junto con:
+Los errores de autenticación incluyen:
 
 ```text
 WWW-Authenticate: Bearer
 ```
 
-La API utiliza el mismo mensaje de error para ambos casos:
+El login devuelve el mismo mensaje tanto para un email inexistente como para una contraseña incorrecta.
 
-```json
-{
-  "detail": "Email o contraseña incorrectos"
-}
+PostgreSQL mantiene además una restricción `UNIQUE` sobre el email como protección definitiva frente a duplicados.
+
+Si se produce un `IntegrityError`, la sesión de SQLAlchemy ejecuta `rollback()` antes de devolver `409 Conflict`.
+
+## Configuración
+
+Crear un archivo `.env` a partir de `.env.example`.
+
+```env
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=gestor_tareas
+DB_USER=postgres
+DB_PASSWORD=your_password_here
+
+JWT_SECRET_KEY=your_secret_key_here
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
 ```
 
-Esto evita revelar directamente durante el login si un email concreto está registrado.
+La configuración se carga mediante `pydantic-settings`.
 
-#### Obtener usuario autenticado
+Los secretos almacenados en `.env` están excluidos de Git.
 
-```http
-GET /auth/me
-```
+## Ejecutar con Docker
 
-Este endpoint está protegido y requiere enviar un access token JWT válido mediante la cabecera:
+Docker Compose ejecuta FastAPI y PostgreSQL como servicios independientes:
 
 ```text
-Authorization: Bearer <access_token>
+Docker Compose
+├── api → FastAPI
+└── db  → PostgreSQL 16
 ```
 
-La API:
-
-- extrae el token Bearer
-- valida la firma del JWT
-- comprueba automáticamente su expiración
-- obtiene el ID del usuario desde el claim `sub`
-- busca el usuario en PostgreSQL
-- devuelve únicamente sus datos públicos
-
-Ejemplo de respuesta:
-
-```json
-{
-  "id": 1,
-  "email": "user@example.com"
-}
-```
-
-Si el token es inválido, ha expirado o hace referencia a un usuario que ya no existe, devuelve:
+La API se conecta a PostgreSQL a través de la red interna de Docker utilizando:
 
 ```text
-401 Unauthorized
+DB_HOST=db
 ```
 
-junto con:
+PostgreSQL dispone de un healthcheck y la API espera a que la base de datos esté disponible antes de iniciar.
+
+Las migraciones de Alembic se aplican automáticamente antes de arrancar Uvicorn.
+
+### Iniciar
+
+```bash
+docker compose up --build
+```
+
+Cuando la imagen ya está construida:
+
+```bash
+docker compose up
+```
+
+API:
 
 ```text
-WWW-Authenticate: Bearer
+http://127.0.0.1:8000
 ```
 
-Un token criptográficamente válido no es suficiente si el usuario indicado por `sub` ya no existe en la base de datos.
+Swagger:
 
-### Health
-
-#### Comprobar el estado de la API
-
-```http
-GET /health
+```text
+http://127.0.0.1:8000/docs
 ```
 
-Este endpoint es público y no requiere autenticación.
+### Detener
 
-Ejemplo de respuesta:
-
-```json
-{
-  "status": "ok"
-}
+```bash
+docker compose down
 ```
 
-Permite comprobar rápidamente que la aplicación está disponible y puede utilizarse en entornos de despliegue o contenedores.
+Los datos de PostgreSQL se almacenan en un volumen persistente, por lo que recrear los contenedores no elimina usuarios ni tareas.
+
+Para eliminar también los datos almacenados:
+
+```bash
+docker compose down -v
+```
+
+## Desarrollo local
+
+Clonar el repositorio:
+
+```bash
+git clone https://github.com/sergiof11/task-manager-api.git
+cd task-manager-api
+```
+
+Crear el entorno virtual:
+
+```bash
+python -m venv venv
+```
+
+Activarlo en Windows PowerShell:
+
+```powershell
+.\venv\Scripts\Activate
+```
+
+Instalar las dependencias:
+
+```bash
+pip install -r requirements.txt
+```
+
+Crear las bases de datos PostgreSQL:
+
+```text
+gestor_tareas
+gestor_tareas_test
+```
+
+Aplicar las migraciones:
+
+```bash
+alembic upgrade head
+```
+
+Iniciar la API:
+
+```bash
+python -m uvicorn app.main:app --reload
+```
+
+## Migraciones
+
+Alembic es la fuente de verdad para la evolución del esquema de base de datos.
+
+Aplicar migraciones pendientes:
+
+```bash
+alembic upgrade head
+```
+
+Comprobar la revisión actual:
+
+```bash
+alembic current
+```
+
+La aplicación no utiliza `Base.metadata.create_all()` para gestionar cambios de esquema.
 
 ## Tests
 
-El proyecto utiliza `pytest`, `pytest-cov` y una base de datos PostgreSQL separada para evitar que los tests modifiquen los datos de desarrollo.
-
-La suite está organizada por áreas de responsabilidad:
+Actualmente el proyecto cuenta con:
 
 ```text
-tests/
-├── conftest.py
-├── test_auth.py
-├── test_health.py
-├── test_tasks_authorization.py
-├── test_tasks_crud.py
-├── test_tasks_filters.py
-└── test_users.py
+39 tests
+100% de cobertura sobre app/
 ```
 
-`conftest.py` contiene las fixtures compartidas de pytest, incluyendo:
+La suite cubre:
 
-- cliente de FastAPI
-- limpieza automática de la base de datos antes de cada test
-- creación de un usuario autenticado
-- generación automática de cabeceras `Authorization` mediante `auth_headers`
-- segundo usuario autenticado mediante `second_auth_headers`
-
-Los tests se distribuyen de la siguiente forma:
-
-- `test_tasks_crud.py`: operaciones CRUD y validaciones de tareas
-- `test_tasks_authorization.py`: autenticación, propiedad y aislamiento entre usuarios
-- `test_tasks_filters.py`: paginación, filtros y validación de parámetros
-- `test_users.py`: registro, duplicados, conflictos de integridad y validaciones de usuarios
-- `test_auth.py`: login, generación de JWT, autenticación y casos límite de tokens
-- `test_health.py`: comprobación del endpoint de estado de la API
-- `conftest.py`: configuración y fixtures compartidas
+- registro de usuarios
+- emails duplicados
+- autenticación
+- JWT válidos, inválidos y expirados
+- obtención del usuario autenticado
+- CRUD de tareas
+- propiedad y aislamiento entre usuarios
+- paginación
+- filtros
+- validaciones
+- errores de integridad
+- healthcheck
 
 Ejecutar todos los tests:
 
@@ -882,63 +397,19 @@ Ejecutar todos los tests:
 python -m pytest
 ```
 
-Actualmente el proyecto cuenta con **39 tests automatizados**.
-
-Entre otros comportamientos, la suite comprueba:
-
-- CRUD completo de tareas
-- autenticación JWT
-- acceso con token inválido o expirado
-- cabecera `WWW-Authenticate: Bearer`
-- tareas inexistentes
-- validación de IDs
-- validación de títulos
-- registro de usuarios
-- validación de emails
-- contraseñas inválidas
-- emails duplicados
-- manejo de `IntegrityError`
-- recuperación de la sesión mediante `rollback()`
-- login correcto e incorrecto
-- JWT válido asociado a un usuario inexistente
-- propiedad de tareas
-- aislamiento entre usuarios
-- paginación
-- filtros por estado
-- validación de parámetros
-- healthcheck
-
-### Cobertura de tests
-
-La cobertura del código de aplicación se mide mediante `pytest-cov`.
-
-Ejecutar tests y mostrar la cobertura:
+Ejecutar los tests con cobertura:
 
 ```bash
 python -m pytest --cov=app --cov-report=term-missing
 ```
 
-El reporte indica:
-
-- número de líneas ejecutables por archivo
-- líneas que no han sido ejecutadas por los tests
-- porcentaje de cobertura
-- líneas concretas que faltan por cubrir
-
-Actualmente la suite alcanza:
+Los tests utilizan una base de datos PostgreSQL separada:
 
 ```text
-39 tests passed
-100% coverage
+gestor_tareas_test
 ```
 
-sobre las líneas ejecutables del directorio `app/`.
-
-El 100% de cobertura indica que todas las líneas ejecutables de la aplicación son recorridas al menos una vez por la suite actual. No implica por sí solo ausencia de errores, por lo que la cobertura se utiliza junto con tests funcionales y casos límite.
-
 ## Calidad de código
-
-El proyecto utiliza Ruff para analizar el código y detectar problemas de estilo, imports y posibles errores.
 
 Ejecutar Ruff:
 
@@ -946,124 +417,70 @@ Ejecutar Ruff:
 ruff check .
 ```
 
-Aplicar automáticamente correcciones seguras detectadas por Ruff:
+Aplicar correcciones automáticas seguras:
 
 ```bash
 ruff check . --fix
 ```
 
-Antes de realizar commits importantes se recomienda ejecutar:
+Comprobaciones recomendadas antes de un commit:
 
 ```bash
 ruff check .
 python -m pytest
 ```
 
-Para una revisión completa incluyendo cobertura:
-
-```bash
-ruff check .
-python -m pytest --cov=app --cov-report=term-missing
-```
-
 ## Integración continua
 
-El proyecto utiliza GitHub Actions para ejecutar automáticamente las comprobaciones después de cada `push` y en los pull requests.
+GitHub Actions se ejecuta automáticamente en los `push` y pull requests.
 
-El workflow de CI:
+El workflow:
 
-- crea un entorno Ubuntu temporal
-- levanta una instancia PostgreSQL temporal
-- instala Python y las dependencias del proyecto
-- ejecuta Ruff
-- aplica las migraciones con `alembic upgrade head`
-- ejecuta los tests con pytest
+1. inicia un entorno Ubuntu
+2. levanta PostgreSQL
+3. instala las dependencias
+4. ejecuta Ruff
+5. aplica las migraciones de Alembic sobre una base de datos vacía
+6. ejecuta la suite de tests
 
-Esto permite comprobar que una base de datos PostgreSQL vacía puede construirse correctamente utilizando únicamente las migraciones del proyecto.
-
-La configuración se encuentra en:
+Configuración:
 
 ```text
 .github/workflows/ci.yml
 ```
 
-La integración de la cobertura de tests en el workflow de CI se realizará en la fase final de configuración de GitHub Actions.
+La integración de cobertura en CI se añadirá durante la revisión final del workflow.
 
-## Próximas mejoras
+## Decisiones técnicas
 
-- Integración de cobertura en GitHub Actions
-- Revisión final de CI
-- Deploy en Azure
-- Revisión de secretos y configuración para producción
-- README final para portfolio
-- Revisión completa y cierre del proyecto
+- La propiedad de las tareas se obtiene del JWT y nunca del cuerpo de la petición.
+- Las tareas de otros usuarios devuelven `404` para no revelar su existencia.
+- Las consultas SQLAlchemy utilizan parámetros enlazados en lugar de concatenar entrada del usuario.
+- Alembic gestiona todos los cambios del esquema.
+- Desarrollo y tests utilizan bases de datos separadas.
+- PostgreSQL utiliza un volumen Docker persistente.
+- Docker espera a que PostgreSQL esté disponible antes de arrancar la API.
+- Las migraciones se ejecutan automáticamente al iniciar el contenedor de la API.
+- El login devuelve el mismo error para usuarios inexistentes y contraseñas incorrectas.
+- El listado de tareas limita las respuestas a un máximo de 100 elementos.
 
 ## Estado del proyecto
 
-Proyecto en desarrollo.
+El desarrollo principal de la API está completado.
 
-Actualmente están implementados:
+Estado actual:
 
-- CRUD completo de tareas
-- PostgreSQL con SQLAlchemy
-- separación entre modelos ORM y esquemas Pydantic
-- registro de usuarios
-- login de usuarios con verificación de credenciales
-- hashing de contraseñas con Argon2
-- verificación segura de contraseñas
-- generación de access tokens JWT
-- validación de access tokens JWT
-- identificación del usuario mediante el claim `sub`
-- expiración de tokens mediante el claim `exp`
-- obtención del usuario autenticado mediante JWT
-- rechazo de JWT válidos asociados a usuarios inexistentes
-- endpoint protegido `GET /auth/me`
-- protección JWT de todos los endpoints `/tasks`
-- cabecera `WWW-Authenticate: Bearer` en errores de autenticación
-- mismo mensaje de error ante email inexistente o contraseña incorrecta en login
-- relación entre tareas y usuarios mediante `user_id`
-- foreign key `tasks.user_id → users.id`
-- índice sobre `tasks.user_id`
-- asignación automática del propietario de una tarea desde el JWT
-- aislamiento completo de tareas entre usuarios
-- listado de tareas filtrado por usuario autenticado
-- protección de consulta de tareas ajenas
-- protección de modificación de tareas ajenas
-- protección de eliminación de tareas ajenas
-- uso de `404` para evitar revelar recursos pertenecientes a otros usuarios
-- paginación mediante `skip` y `limit`
-- límite máximo de 100 tareas por petición
-- filtrado por estado `completed`
-- validación de parámetros de paginación
-- validación de IDs de tareas positivos
-- validación de longitud de títulos y contraseñas
-- endpoint público `GET /health`
-- protección frente a emails duplicados mediante comprobación previa y restricción `UNIQUE`
-- respuesta `409 Conflict` para emails duplicados
-- manejo de `IntegrityError` y `rollback()` de la sesión
-- migraciones y versionado de base de datos con Alembic
-- migraciones reproducibles desde una base de datos vacía
-- configuración centralizada con `pydantic-settings`
-- configuración JWT mediante variables de entorno
-- organización de rutas mediante routers
-- base de datos de test separada
-- suite de tests reorganizada por responsabilidad
-- fixtures compartidas mediante `conftest.py`
-- fixtures `auth_headers` y `second_auth_headers`
-- limpieza automática de la base de datos entre tests
-- tests de aislamiento entre múltiples usuarios
-- tests de paginación, filtros, autenticación y casos límite
-- manejo de errores de integridad cubierto mediante tests
-- 39 tests automáticos
-- cobertura del 100% sobre `app/`
-- análisis de código con Ruff
-- contenerización de FastAPI mediante Docker
-- PostgreSQL ejecutado mediante Docker Compose
-- comunicación interna entre API y PostgreSQL mediante el servicio `db`
-- healthcheck de PostgreSQL
-- ejecución automática de las migraciones Alembic antes de iniciar FastAPI
-- persistencia de los datos mediante volumen Docker
-- recreación de contenedores sin pérdida de usuarios ni tareas
-- CI con GitHub Actions, PostgreSQL y migraciones
+```text
+39 tests superados
+100% de cobertura sobre la aplicación
+Ruff limpio
+Docker Compose verificado
+```
 
-La siguiente fase estará centrada en completar la integración continua con cobertura y realizar las últimas validaciones de CI antes del despliegue en Azure.
+Pendiente:
+
+- integrar coverage en GitHub Actions
+- revisión final de CI
+- despliegue en Azure
+- revisión de configuración y secretos de producción
+- pulido final del portfolio

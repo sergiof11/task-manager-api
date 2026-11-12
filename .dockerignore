@@ -1,14 +1,20 @@
+# Entorno virtual
 venv/
+
+# Caché de Python
 __pycache__/
 *.pyc
 
+# Variables de entorno y secretos
 .env
 
+# Cachés de herramientas
 .pytest_cache/
 .ruff_cache/
 .coverage
 htmlcov/
 coverage.xml
 
+# Metadatos de Git
 .git/
 .github/
