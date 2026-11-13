@@ -1,20 +1,20 @@
-# Entorno virtual
+# Virtual environment
 venv/
 
-# Caché de Python
+# Python cache
 __pycache__/
 *.pyc
 
-# Variables de entorno y secretos
+# Environment variables and secrets
 .env
 
-# Cachés de herramientas
+# Tool caches
 .pytest_cache/
 .ruff_cache/
 .coverage
 htmlcov/
 coverage.xml
 
-# Metadatos de Git
+# Git metadata
 .git/
 .github/
