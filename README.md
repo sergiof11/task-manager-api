@@ -235,6 +235,7 @@ DB_PORT=5432
 DB_NAME=gestor_tareas
 DB_USER=postgres
 DB_PASSWORD=your_password_here
+DB_SSLMODE=prefer
 
 JWT_SECRET_KEY=your_secret_key_here
 JWT_ALGORITHM=HS256
@@ -487,6 +488,6 @@ CI con cobertura verificada
 
 Pendiente:
 
-- Despliegue en Azure
+- Despliegue en la nube con Render y Neon
 - Revisión de configuración y secretos de producción
 - Pulido final del portfolio

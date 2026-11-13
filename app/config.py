@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy.engine import URL
 
 
 class Settings(BaseSettings):
@@ -7,6 +8,7 @@ class Settings(BaseSettings):
     db_name: str = "gestor_tareas"
     db_user: str = "postgres"
     db_password: str
+    db_sslmode: str = "prefer"
 
     jwt_secret_key: str
     jwt_algorithm: str = "HS256"
@@ -19,11 +21,17 @@ class Settings(BaseSettings):
 
     @property
     def database_url(self) -> str:
-        return (
-            f"postgresql+psycopg://{self.db_user}:"
-            f"{self.db_password}@{self.db_host}:"
-            f"{self.db_port}/{self.db_name}"
+        url = URL.create(
+            drivername="postgresql+psycopg",
+            username=self.db_user,
+            password=self.db_password,
+            host=self.db_host,
+            port=self.db_port,
+            database=self.db_name,
+            query={"sslmode": self.db_sslmode},
         )
+
+        return url.render_as_string(hide_password=False)
 
 
 settings = Settings()  # pyright: ignore[reportCallIssue]
